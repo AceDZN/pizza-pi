@@ -30,6 +30,28 @@ Automation and my own playthroughs can't show that the game is fun or that stude
 - Formulas in LTR spans wrapped and read backwards in RTL paragraphs (`≈ r × π × 2`).
 - Timers rebuilt the HUD every second, invalidating buttons mid-click.
 
+## UI/UX pass 2 (hand-played in Chrome after user feedback, 24 Oct)
+
+Played levels 1, 2, 5 and 7 by mouse and keyboard, checked 3, 4 and 6 by script plus screenshots, and checked mobile 375×812. Found and fixed:
+
+- **Clicks lost:** topping chips and other ± chips sometimes did nothing because the HUD rebuilt the button between press and release. Chips now act on pointerdown, and cards only re-render when their HTML changes.
+- **Camera re-zoomed while dragging the dough** (framing followed r), so the drag-to-radius mapping drifted under the mouse. The station framing is now fixed; the camera settles faster.
+- **No drag affordance** on the dough ball: added a pulsing ring.
+- **The chef covered the customer** on wide screens, and his tip bubble covered his face. Smaller chef placed further back; the bubble anchors beside his head.
+- **The game HUD showed through the title/intro/level cards:** now hidden behind them.
+- **Customers walked through the kitchen** and off-duty ones loitered in shot. They now walk behind the wall; waiting customers queue in the dining room, seen through the pass (rush hour reads as a crowd). The active customer is already at the window on the intro card.
+- **Result card covered the customer's reaction:** it now sits beside the window (bottom sheet on phones), without dimming.
+- **Pie never reached the customer** on serve; now it slides to the pass. At the oven station the pie is staged in front of the oven, then goes fully inside to bake (it used to sit half under the tabs, then stop at the mouth).
+- **Props in the way:** the sauce bottle and a basil pot sat in the bake path; the oil bottle too. Moved. Topping jars hid behind the chef; now back-right with their own camera framing.
+- **Crust:** within tolerance it now draws as sealed (it showed a gap next to a "סגור ✓" tag); golden cheese colour; the rope is thick and orange on a cream tape; rope dragging hits the tape plane (it read 68 cm at the 70 mark); the reel and the zero end are on screen; the knife hides after the cut.
+- **Particles:** red "gravel" splats, cotton-ball steam and huge confetti cubes were shrunk. A sauce stream now runs from the nozzle while squeezing.
+- **Text:** formulas outside LTR spans in the notebook read scrambled (`2 × r × π`); all formulas are now isolated. Parentheses around LTR numbers in tickets rendered as "(קוטר 25 )" and were removed. Tickets showed "ניסיון 2" after a first-try success. The coin emoji rendered grey and is now an SVG.
+- **Level 5 scale tilted the wrong way:** it's now a drawn balance whose heavier pan (one large pizza) goes down, with your choice marked.
+- **Mobile:** the portrait camera re-tuned so the dough and crust tape sit above the control card.
+- **Enter on a card** that had just changed could press the next card's button; Enter is now ignored for 450 ms after a card change.
+
+Testing note: Chrome and the in-app browser throttle animation frames when their window is in the background, which froze the game clock (it looked like "baking never finishes"). That is not a player-facing bug; scripted checks step time with `advanceTime`.
+
 ## Known limits / not verified
 
 - No touch-device test on a real phone (emulated viewport only); FPS on phones is not measured. Triangle count is high for low-end phones: the character meshes (~19k each) and shadow pass are the first things to cut.

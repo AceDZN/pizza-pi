@@ -950,7 +950,7 @@ export class PizzaScene {
     this.reel.rotation.z = -pie.rope * 0.05;
     this.knifeDrop = Math.max(0, this.knifeDrop - dt * 2.2);
     const kd = this.knifeDrop > 0.5 ? (1 - this.knifeDrop) * 2 : this.knifeDrop * 2;
-    this.knife.visible = st === 'crust' && g.phase === 'playing';
+    this.knife.visible = st === 'crust' && g.phase === 'playing' && (pie.cheese === null || this.knifeDrop > 0);
     this.knife.position.set(this.knifeDrop > 0 ? this.knife.position.x : reelX - len, 1.2 - kd * 0.75, ROPE_Z);
 
     // ---- mix ----
@@ -1028,7 +1028,7 @@ export class PizzaScene {
     if (g.phase === 'intro' || g.phase === 'levelDone' || g.phase === 'finished' || g.phase === 'shiftOver') { look.set(-0.5, 2.2, -2.5); width = 22; pitch = 0.5; }
     else if (g.phase === 'result') { look.set(PICKUP.x + 0.6, 2.6, -5.0); width = 19; pitch = 0.34; yaw = 0.05; }
     else if (g.busy?.kind === 'bake' || st === 'oven') { look.set(-3.4, 1.0, -1.8); width = 18; pitch = 0.58; yaw = 0.3; }
-    else if (st === 'crust') { look.set(-0.4, 0.9, -0.6); width = 21; pitch = 0.78; yaw = 0.06; }
+    else if (st === 'crust') { look.set(-0.4, 0.6, 0.3); width = 21; pitch = 0.84; yaw = 0.06; }
     else if (st === 'toppings') { look.set(2.6, 0.9, -1.6); width = 19; pitch = 0.74; yaw = 0.08; }
     else if (st === 'mix') { look.set(MIX_POS.x - 1.4, 1.0, -0.8); width = 15; pitch = 0.7; }
     else { look.set(-0.4, 1.2, -1.8); width = two ? 23 : 19; pitch = 0.68; }
