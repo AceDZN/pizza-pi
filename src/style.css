@@ -226,6 +226,13 @@ body.hud-off .tickets, body.hud-off .stations, body.hud-off .control, body.hud-o
 
 /* The result card sits beside the window so the customer's reaction stays visible. */
 .overlay.result-mode { background: none; backdrop-filter: none; justify-items: end; align-items: center; padding-left: 3vw; }
+@media (max-width: 1100px) and (min-width: 761px) {
+  .overlay.result-mode { padding-left: 1vw; }
+  .overlay.result-mode .sheet.result { width: min(380px, 44vw); }
+  .overlay.result-mode .scroll { padding: 14px 16px 16px; }
+  .overlay.result-mode .scroll .reaction { font-size: 34px; }
+  .overlay.result-mode .scroll .stars { font-size: 40px; }
+}
 @media (max-width: 760px), (max-height: 520px) {
   .overlay.result-mode { justify-items: center; align-items: end; padding: 0 8px 84px; }
   .overlay.result-mode .sheet.result { width: min(420px, 100%); }

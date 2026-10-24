@@ -51,3 +51,26 @@ Dough disc and rim, sauce disc (radius = √(A/π)), overflow puddle, charred ba
 
 - Font: Rubik (Hebrew + Latin subsets, weights 500/700/900) via `@fontsource/rubik` 5.2.8, bundled (SIL OFL 1.1).
 - Sound: procedural WebAudio in `src/audio.ts` (no audio files).
+
+## Calm-face regeneration (24 Oct, night)
+
+The user found the characters' grins creepy. Tripo bakes the face into the texture and its Mixamo rig has no face bones or blendshapes, so a grin can't be relaxed later. All six characters were regenerated in T-pose with prompts asking for a "calm kind expression, gentle closed-mouth smile, relaxed eyes, no teeth showing", then triangle-retopologized to ~9.3k faces, auto-rigged (Mixamo) and exported with the skeleton. The previous grinning GLBs are kept in `scripts/raw/old-grinning/` (gitignored).
+
+| Character | New task id |
+|---|---|
+| chef (first retry came out bare-chested, regenerated with a chef jacket) | `eb9bb659-fc30-4e2e-b53e-8b998489f62e` (bare-chested attempt `749746b1-2542-404f-83ef-56fefc734dd3`, unused) |
+| Noa | `68adc922-aec1-4fbf-a37f-688c935b302e` |
+| Saba | `9845959d-dd3e-4921-8175-69b8d1447775` |
+| Ido | `7275d41a-0482-4a10-995b-45c327c624e9` |
+| Maya | `5a7a87c2-7e07-4de9-9ec3-6aff71cee226` |
+| Yoni | `f08a34dc-787e-4fdc-8737-748419f8976c` |
+
+Animation: `public/models/clips.glb` (242 KB) holds only the Mixamo skeleton plus Tripo's **idle** and **cheer** clips, extracted from the earlier Saba export by `scripts/extract-clips.mjs`. All characters share the skeleton, so the clips drive every one of them by bone name.
+
+Cost by list price: 7 generations × 45 + 6 retopo × 35 + 6 rigs × 20 = 645 credits. Shared balance 2255 → 1610 (other builders were idle at the time).
+
+### Face rig: what was checked
+
+- Tripo's rigging produces body skeletons (Mixamo/humanoid presets); no face bones or ARKit blendshapes are offered in the Studio UI.
+- Third-party routes exist but are not one-click for these stylized meshes: the open-source [arkit-blendshape-tool](https://github.com/digitalp/arkit-blendshape-tool) copies ARKit shapes from a reference avatar by vertex proximity (needs similar face topology); Blender add-ons such as ShapeKeyGen or Faceflex need a hand-set face rig. Unreal MetaHuman would replace the characters rather than rig them.
+- Decision for now: calm painted faces, with emotion carried by body animation, speech bubbles and reactions. A real face rig is a follow-up (see progress.md).

@@ -717,7 +717,7 @@ export class PizzaScene {
       return wrap;
     };
     onProgress('מחממים את התנור…');
-    const [oven, bottle, chef, noa, saba, kidA, kidB, kidC] = await Promise.all(['oven.glb', 'sauce-bottle.glb', 'chef.glb', 'noa.glb', 'saba.glb', 'kid-ido.glb', 'kid-maya.glb', 'kid-yoni.glb'].map(load));
+    const [oven, bottle, chef, noa, saba, kidA, kidB, kidC, clips] = await Promise.all(['oven.glb', 'sauce-bottle.glb', 'chef.glb', 'noa.glb', 'saba.glb', 'kid-ido.glb', 'kid-maya.glb', 'kid-yoni.glb', 'clips.glb'].map(load));
     const info = (name: string, g: { scene: THREE.Object3D; animations: THREE.AnimationClip[] } | null) => this.modelInfo.push({ name, ok: !!g, triangles: g ? tris(g.scene) : 0, animations: g ? g.animations.map((a) => a.name) : [] });
     info('oven', oven); info('sauce-bottle', bottle); info('chef', chef); info('noa', noa); info('saba', saba);
     info('kid-ido', kidA); info('kid-maya', kidB); info('kid-yoni', kidC);
@@ -735,10 +735,10 @@ export class PizzaScene {
     else this.bottle.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 2, 16), new THREE.MeshStandardMaterial({ color: '#c8311f' })));
     this.scene.add(this.bottle);
 
-    // All three characters share Tripo's Mixamo skeleton, so a clip missing on one (the chef has no cheer)
-    // can be borrowed by bone name; the hips translation is dropped because body proportions differ.
+    // Every character shares Tripo's Mixamo skeleton, so the Tripo idle/cheer clips in clips.glb drive any of
+    // them by bone name; the hips translation is dropped because body proportions differ.
     const shared = new Map<string, THREE.AnimationClip>();
-    for (const m of [noa, saba]) for (const c of m?.animations ?? []) if (!shared.has(c.name)) shared.set(c.name, c);
+    for (const m of [clips, noa, saba]) for (const c of m?.animations ?? []) if (!shared.has(c.name)) shared.set(c.name, c);
     const borrow = (clips: THREE.AnimationClip[]) => {
       const have = new Set(clips.map((c) => c.name));
       const extra = [...shared.values()].filter((c) => !have.has(c.name)).map((c) => new THREE.AnimationClip(c.name, c.duration, c.tracks.filter((t) => !/Hips\.position$/.test(t.name))));
@@ -776,8 +776,8 @@ export class PizzaScene {
     this.customers.noa = [actor(noa, 9.4, '#9b6fd1', noaPos.clone().setY(-5.6))];
     this.customers.saba = [actor(saba, 10.4, '#3f8f3a', noaPos.clone().setY(-6.5))];
     // Three different kids (Ido 8, Maya 6, Yoni 10), each their own Tripo model; heights follow their ages.
-    const kids = [[kidA, 7.6], [kidB, 6.6], [kidC, 8.4]] as const;
-    this.customers.kids = kids.map(([m, h], i) => actor(m ?? noa, h, ['#3f8f3a', '#f2c45a', '#e07a2e'][i], noaPos.clone().setY(-3.6 - (h - 6.6) * 0.6), !m));
+    const kids = [[kidA, 7.4], [kidB, 6.4], [kidC, 8.0]] as const;
+    this.customers.kids = kids.map(([m, h], i) => actor(m ?? noa, h, ['#3f8f3a', '#f2c45a', '#e07a2e'][i], noaPos.clone().setY(-3.3 - (h - 6.4) * 0.7), !m));
     onProgress('');
   }
 
@@ -831,7 +831,7 @@ export class PizzaScene {
         this.bellBounce = 1;
         const cust = this.activeCustomers(g);
         const ok = c.values?.outcome !== 'fail';
-        cust.forEach((a) => { a.react = 2.2; a.mood = ok ? 'happy' : 'sad'; this.play(a, a.mood); });
+        cust.forEach((a) => { a.react = ok ? 3.6 : 2.4; a.mood = ok ? 'happy' : 'sad'; this.play(a, a.mood); });
         if (this.chef && c.values?.outcome === 'perfect') { this.chef.react = 2.4; this.chef.mood = 'happy'; this.play(this.chef, 'happy'); }
         if (c.values?.outcome === 'perfect') setTimeout(() => this.particles.emit({ pos: new THREE.Vector3(PICKUP.x, 5, WALL_Z + 1), n: 120, color: ['#ffcf3a', '#3f8f3a', '#e0482a', '#ffffff', '#7ac0ff'], speed: 5, up: 7, size: 0.09, life: 2.2, g: 7, drag: 0.6 }), 300);
         if (!ok) this.shakeCam(0.35);
@@ -1000,7 +1000,8 @@ export class PizzaScene {
         const isActive = tk?.def.customer === id && g.phase !== 'levelDone' && g.phase !== 'finished';
         const waiting = openCustomers.has(id as CustomerId) && !isActive && g.phase === 'playing';
         // The active customer leans in at the pass window; others queue along the wall.
-        if (isActive) a.target.set(1.4 + (list.length > 1 ? (i - 1) * 2.3 : 0), a.baseY, WALL_Z + 1.3 + (list.length > 1 && i === 1 ? 0.6 : 0));
+        // Kids stand in a row by height: Maya (smallest) on the left, Ido middle, Yoni (tallest) right.
+        if (isActive) a.target.set(1.4 + (list.length > 1 ? [0, -2.4, 2.4][i] : 0), a.baseY, WALL_Z + 1.3);
         else if (waiting) a.target.set(-1 + i * 1.5 + Object.keys(this.customers).indexOf(id) * 1.2, a.baseY, WALL_Z - 3); // queued out of sight behind the wall
         else a.target.set(18 + i * 2, a.baseY, WALL_Z + 1);
         this.animateActor(a, dt);
@@ -1025,7 +1026,8 @@ export class PizzaScene {
     const look = new THREE.Vector3();
     let width = 19, pitch = 0.62, yaw = 0.16;
     if (g.phase === 'intro' || g.phase === 'levelDone' || g.phase === 'finished' || g.phase === 'shiftOver') { look.set(-0.5, 2.2, -2.5); width = 22; pitch = 0.5; }
-    else if (g.phase === 'result') { look.set(PICKUP.x + 0.6, 2.6, -5.0); width = 19; pitch = 0.34; yaw = 0.05; }
+    // The result card covers the left ~45% of the screen, so frame the customer in the right half.
+    else if (g.phase === 'result') { look.set(PICKUP.x - 3.4, 2.6, -5.0); width = 19; pitch = 0.34; yaw = 0.05; }
     else if (g.busy?.kind === 'bake' || st === 'oven') { look.set(-3.4, 1.0, -1.8); width = 18; pitch = 0.58; yaw = 0.3; }
     else if (st === 'crust') { look.set(-0.4, 0.6, 0.3); width = 21; pitch = 0.84; yaw = 0.06; }
     else if (st === 'toppings') { look.set(2.6, 0.9, -1.6); width = 19; pitch = 0.74; yaw = 0.08; }
@@ -1038,7 +1040,7 @@ export class PizzaScene {
     const cw = this.renderer.domElement.width, ch = this.renderer.domElement.height;
     if (portrait && g.phase === 'playing') this.camera.setViewOffset(cw, ch * 1.12, 0, 0, cw, ch);
     else if (this.camera.view?.enabled) this.camera.clearViewOffset();
-    this.lampParts.forEach((m) => (m.visible = !portrait));
+    this.lampParts.forEach((m) => (m.visible = !portrait && g.phase !== 'result'));
     const pos = new THREE.Vector3();
     this.frame(look, width, pitch, yaw, pos);
     if (!Number.isFinite(this.camPos.x + this.camPos.y + this.camPos.z)) this.camPos.copy(pos);

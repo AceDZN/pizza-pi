@@ -15,8 +15,11 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@gltf-transform/core": "4.2.1",
+    "@gltf-transform/extensions": "4.2.1",
     "@types/node": "24.19.2",
     "@types/three": "0.183.1",
+    "meshoptimizer": "0.25.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.5"

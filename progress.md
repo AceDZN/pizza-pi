@@ -9,7 +9,14 @@
 - Playtested in Chrome and the in-app browser (desktop + mobile emulation), fixed the bugs listed in PLAYTEST.md.
 - Public repo: https://github.com/AceDZN/pizza-pi (branch `main`). The git directory lives outside the Idea Plotter checkout (`~/.git-repos/pizza-pi.git`, `core.worktree` = this folder), so the parent repo is untouched. To work on it elsewhere, clone from GitHub.
 
+## 24 Oct, night
+
+- Patience meter fixed (60 s, colour stages, customer complaint when it runs out; the speed tip follows it).
+- All six characters regenerated with calm, closed-mouth faces; shared Tripo idle/cheer clips in `clips.glb`.
+
 ## Next ideas
+
+- Face rig: try arkit-blendshape-tool or a Blender ShapeKeyGen pass on one character (e.g. Noa) to get blink + smile/frown blendshapes, then drive them from the game mood.
 
 - Real-phone test; reduce triangles/shadows on mobile if needed.
 - A chef-specific cheer and a customer "disappointed" clip from Tripo.
