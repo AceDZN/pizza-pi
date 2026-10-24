@@ -59,8 +59,11 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .ticket.active { outline: 4px solid var(--leaf); }
 .ticket.done { opacity: .55; }
 .ticket.done::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; font-weight: 900; color: var(--basil); }
-.tickets.many .ticket { width: 150px; padding: 14px 8px 8px; }
-.tickets.many .ticket .order { font-size: 14px; }
+.tickets.many { left: 36%; gap: 6px; }
+.tickets.many .ticket { width: 132px; padding: 12px 6px 6px; }
+.tickets.many .ticket .order { font-size: 13px; margin: 2px 0 4px; }
+.tickets.many .ticket .who { font-size: 11px; }
+.tickets.many .ticket .patience { font-size: 10px; }
 .shift-clock { position: absolute; top: 14px; left: 50%; transform: translate(-50%, 0); margin-top: 0; }
 .clock { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: var(--cream); font-weight: 900; padding: 6px 14px; border-radius: 999px; box-shadow: var(--soft); font-size: 20px; }
 .clock.low { background: var(--red); animation: pulse 0.6s infinite alternate; }
@@ -211,4 +214,19 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
   .sheet p { font-size: 15px; }
   .title .mark { font-size: 56px; }
   .toast { font-size: 30px; }
+}
+
+/* Full-screen cards hide the gameplay HUD behind them. */
+body.hud-off .tickets, body.hud-off .stations, body.hud-off .control, body.hud-off .stock, body.hud-off .notebook, body.hud-off .speech, body.hud-off .float-tag, body.hud-off .tools { visibility: hidden; }
+.coin { width: 1.05em; height: 1.05em; vertical-align: -0.18em; }
+.deal-scale { width: 100%; max-width: 340px; display: block; margin: 4px auto 0; }
+
+/* The result card sits beside the window so the customer's reaction stays visible. */
+.overlay.result-mode { background: none; backdrop-filter: none; justify-items: end; align-items: center; padding-left: 3vw; }
+@media (max-width: 760px), (max-height: 520px) {
+  .overlay.result-mode { justify-items: center; align-items: end; padding: 0 8px 84px; }
+  .overlay.result-mode .sheet.result { width: min(420px, 100%); }
+  .overlay.result-mode .scroll { padding: 14px 16px 16px; }
+  .overlay.result-mode .scroll .reaction { font-size: 30px; }
+  .overlay.result-mode .scroll .stars { font-size: 38px; }
 }

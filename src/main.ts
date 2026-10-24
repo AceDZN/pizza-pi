@@ -48,6 +48,7 @@ const ICON: Record<string, string> = {
   water: '<svg viewBox="0 0 48 48"><path d="M24 6c8 12 13 18 13 25a13 13 0 01-26 0c0-7 5-13 13-25z" fill="#8fc6e8" stroke="#3a2214" stroke-width="3"/></svg>',
   flour: '<svg viewBox="0 0 48 48"><path d="M12 14h24l4 26H8z" fill="#d8c49a" stroke="#3a2214" stroke-width="3"/><path d="M12 14l4-6h16l4 6" fill="#fbf6ea" stroke="#3a2214" stroke-width="3"/></svg>',
 };
+const COIN = '<svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#f2c45a" stroke="#8a6414" stroke-width="2"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="900" fill="#8a6414">₪</text></svg>';
 const STATION_NAME: Record<Station, string> = { mix: 'קערה', dough: 'בצק', sauce: 'רוטב', crust: 'קרום', toppings: 'תוספות', oven: 'תנור' };
 const CUSTOMER_NAME: Record<string, string> = { noa: 'נועה', saba: 'סבא מוטי', kids: 'שלושת הילדים' };
 const TOPPING_NAME = { basil: 'בזיליקום', pepperoni: 'פפרוני', olive: 'זיתים', mushroom: 'פטריות' } as const;
@@ -158,7 +159,7 @@ function renderTickets() {
   el.innerHTML = g.tickets.map((t, i) => {
     const patience = Math.max(0, 1 - t.age / 90000);
     return `<button class="ticket ${i === g.active ? 'active' : ''} ${t.done ? 'done' : ''}" data-ticket="${i}" aria-label="הזמנה ${i + 1}">
-      <div class="who">${CUSTOMER_NAME[t.def.customer]}${t.attempts ? ` · ניסיון ${t.attempts + 1}` : ''}</div>
+      <div class="who">${CUSTOMER_NAME[t.def.customer]}${t.attempts && !t.done ? ` · ניסיון ${t.attempts + 1}` : ''}</div>
       <div class="order">${fmtText(t.def.text)}</div>
       <div class="patience"><span>סבלנות הלקוח:</span><div class="bar"><i data-bar="${i}" style="width:${patience * 100}%"></i></div></div>
     </button>`;
@@ -265,6 +266,8 @@ function renderControl() {
       break;
     }
   }
+  if (el.dataset.html === html) return;
+  el.dataset.html = html;
   el.innerHTML = html;
   const dial = el.querySelector<HTMLInputElement>('#dial');
   if (dial) {
@@ -300,7 +303,10 @@ function renderNotebook() {
 }
 
 // ---------- overlays ----------
-function showOverlay(html: string, kind = '') { $('#sheet').innerHTML = html; $('#sheet').className = `sheet ${kind}`; $('#overlay').classList.remove('hidden'); }
+let overlayChangedAt = 0;
+function showOverlay(html: string, kind = '') {
+  overlayChangedAt = performance.now();
+  $('#overlay').classList.toggle('result-mode', kind === 'result'); $('#sheet').innerHTML = html; $('#sheet').className = `sheet ${kind}`; $('#overlay').classList.remove('hidden'); }
 function hideOverlay() { $('#overlay').classList.add('hidden'); }
 const stars = (k: number) => `<div class="stars">${[1, 2, 3].map((i) => `<span class="${i <= k ? '' : 'off'}">★</span>`).join('')}</div>`;
 
@@ -368,19 +374,30 @@ function showResult() {
     ${deal}
     ${v.outcome === 'perfect' ? facts.map((f) => `<div class="fact">${f} <span class="ok">✓</span></div>`).join('') : ''}
     ${v.reasons.length ? `<div class="explain"><ul>${v.reasons.map((r) => `<li>${explain(r)}</li>`).join('')}</ul></div>` : ''}
-    ${v.outcome !== 'fail' ? `<div class="tips">🪙🪙 טיפ: <bdi>+${res.tips}</bdi> <small>· <bdi>${res.seconds}</bdi> שניות</small></div>` : '<p>אין נורא — מכינים שוב! ההזמנה עדיין פתוחה.</p>'}
+    ${v.outcome !== 'fail' ? `<div class="tips">${COIN}${COIN} טיפ: <bdi>+${res.tips}</bdi> <small>· <bdi>${res.seconds}</bdi> שניות</small></div>` : '<p>אין נורא — מכינים שוב! ההזמנה עדיין פתוחה.</p>'}
     <button class="big" data-act="continue">${v.outcome === 'fail' ? 'ננסה שוב ↻' : 'המשך ◀'}</button></div>`, 'result');
   if (v.outcome !== 'fail') sound.coin(Math.ceil(res.tips / 3));
 }
 
-/** Level 5: the pastry scale reveals both options after baking. */
+/** Level 5: the pastry scale reveals both options after baking; the heavier pan (more pizza) goes down. */
 function dealScale(count: number, r: number) {
   const one = area(20), two = 2 * area(14);
-  const tilt = one > two ? -6 : 6;
-  return `<div style="margin:8px auto;max-width:360px">
-    <div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px"><span>אחת בקוטר 40<br><bdi>${round1(one)}</bdi> סמ״ר</span><span>⚖️</span><span>שתיים בקוטר 28<br><bdi>${round1(two)}</bdi> סמ״ר</span></div>
-    <div style="height:8px;background:var(--brown);border-radius:4px;transform:rotate(${tilt}deg);margin:10px 20px"></div>
-    <div style="font-size:14px">בחרתם: ${count === 1 ? 'פיצה אחת' : 'שתי פיצות'} ברדיוס <bdi>${r}</bdi></div></div>`;
+  const tilt = one > two ? 4 : -4; // positive = right pan (one large) lower
+  const pan = (x: number, label: string, cm2: number, pies: number[], chosen: boolean) => `
+    <g transform="translate(${x} ${70 + (x > 160 ? tilt * 2.2 : -tilt * 2.2)})">
+      <line x1="0" y1="-38" x2="0" y2="-6" stroke="#6b3f22" stroke-width="3"/>
+      <ellipse cx="0" cy="0" rx="58" ry="10" fill="#c9a56a" stroke="#6b3f22" stroke-width="3"/>
+      ${pies.map((pr, i) => `<circle cx="${pies.length > 1 ? (i ? 22 : -22) : 0}" cy="-${pr + 4}" r="${pr}" fill="#e7a24a" stroke="#8a4a1a" stroke-width="2"/><circle cx="${pies.length > 1 ? (i ? 22 : -22) : 0}" cy="-${pr + 4}" r="${pr * 0.78}" fill="#c8311f"/>`).join('')}
+      <text x="0" y="30" text-anchor="middle" font-size="13" font-weight="900" fill="#3a2214">${label}</text>
+      <text x="0" y="47" text-anchor="middle" font-size="14" font-weight="900" fill="${chosen ? '#2d5a22' : '#3a2214'}" direction="ltr">${round1(cm2)} cm²</text>
+      ${chosen ? '<text x="0" y="64" text-anchor="middle" font-size="12" font-weight="900" fill="#2d5a22">✓ הבחירה שלכם</text>' : ''}
+    </g>`;
+  return `<svg class="deal-scale" viewBox="0 0 320 150" role="img" aria-label="מאזניים: ${round1(one)} מול ${round1(two)} סמ״ר">
+    <polygon points="160,40 150,130 170,130" fill="#6b3f22"/>
+    <g transform="rotate(${tilt} 160 34)"><rect x="70" y="30" width="180" height="8" rx="4" fill="#8a5a3a"/></g>
+    ${pan(255, 'אחת בקוטר 40', one, [20], count === 1)}
+    ${pan(65, 'שתיים בקוטר 28', two, [14, 14], count === 2)}
+  </svg><div class="hint-line">בחרתם רדיוס <bdi>${r}</bdi></div>`;
 }
 
 function showLevelDone() {
@@ -389,7 +406,7 @@ function showLevelDone() {
   writeSave();
   const last = g.phase === 'finished';
   showOverlay(`<h2>${last ? 'סוף המשמרת! 🎉' : 'שלב הושלם!'}</h2>${stars(st)}
-    <p>טיפים במשמרת: <bdi>${g.tipsTotal}</bdi> 🪙 · רמזים: <bdi>${g.hintsUsed}</bdi></p>
+    <p>טיפים במשמרת: <bdi>${g.tipsTotal}</bdi> ${COIN} · רמזים: <bdi>${g.hintsUsed}</bdi></p>
     ${last ? `<p>שרדתם את שעת העומס בלי המחברת של השף. רדיוס, קוטר, שטח, היקף, אחוזים ויחס — הכול עבד על פיצות אמיתיות.</p>
       <div class="levels">${LEVELS.map((l, i) => `<button data-level="${i}"><b>${i + 1}. ${l.title}</b>${'★'.repeat(save.stars[i] ?? 0) || '—'}</button>`).join('')}</div>` : ''}
     <button class="big" data-act="${last ? 'menu' : 'nextlevel'}">${last ? 'לתפריט' : 'לשלב הבא ←'}</button>
@@ -410,6 +427,7 @@ function syncOverlay() {
   const key = `${g.phase}:${titleShown}:${g.levelIndex}`;
   if (key === shownPhase) return;
   shownPhase = key;
+  document.body.classList.toggle('hud-off', titleShown || g.phase === 'intro' || g.phase === 'levelDone' || g.phase === 'finished' || g.phase === 'shiftOver');
   if (titleShown) { showTitle(); return; }
   switch (g.phase) {
     case 'intro': showIntro(); break;
@@ -456,9 +474,22 @@ function togglePause() {
   else { hideOverlay(); shownPhase = ''; }
 }
 
+// Game chips act on pointerdown: the HUD may re-render between press and release, which would swallow a click.
+const QUICK = ['r', 'dial', 'rope', 'top', 'count', 'pour', 'station', 'ticket'];
+let quickHandled: HTMLElement | null = null;
+document.addEventListener('pointerdown', (e) => {
+  const t = (e.target as HTMLElement).closest<HTMLElement>('button');
+  if (!t || !QUICK.some((k) => k in t.dataset)) return;
+  quickHandled = t;
+  handleButton(t);
+});
 document.addEventListener('click', (e) => {
   const t = (e.target as HTMLElement).closest<HTMLElement>('button');
   if (!t) return;
+  if (quickHandled && (t === quickHandled || QUICK.some((k) => k in t.dataset)) && e.detail > 0) { quickHandled = null; return; }
+  handleButton(t);
+});
+function handleButton(t: HTMLElement) {
   sound.unlock();
   if (t.dataset.actPause) { togglePause(); return; }
   if (t.dataset.act) { if (g.paused && t.dataset.act !== 'motion') { g.paused = false; } sound.click(); act(t.dataset.act, t); return; }
@@ -477,7 +508,7 @@ document.addEventListener('click', (e) => {
     case 'btn-notebook': if (g.level.hints) { notebookOpen = !notebookOpen; if (notebookOpen) G.useHint(g); renderHud(true); } break;
     case 'btn-calc': toggleCalc(); break;
   }
-});
+}
 
 // ---------- pointer on the 3D counter ----------
 let drag: 'dough' | 'rope' | null = null;
@@ -497,12 +528,13 @@ canvas.addEventListener('pointerdown', (e) => {
     if (d < Math.max(g.pie.r * U, 0.8) + 1.2) { drag = 'dough'; canvas.setPointerCapture(e.pointerId); if (g.pie.r > 0 && d > 0.3) G.setRadius(g, d / U); }
   } else if (g.station === 'crust' && g.pie.cheese === null) {
     drag = 'rope'; canvas.setPointerCapture(e.pointerId);
-    G.setRope(g, (scene.reelX() - hit.x) / U);
+    const tape = scene.pickCounter(e.clientX, e.clientY, true) ?? hit;
+    G.setRope(g, (scene.reelX() - tape.x) / U);
   }
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!drag) return;
-  const hit = scene.pickCounter(e.clientX, e.clientY);
+  const hit = scene.pickCounter(e.clientX, e.clientY, drag === 'rope');
   if (!hit) return;
   if (drag === 'dough') { const c = scene.pieCenter(); G.setRadius(g, Math.hypot(hit.x - c.x, hit.z - c.z) / U); }
   else G.setRope(g, (scene.reelX() - hit.x) / U);
@@ -522,6 +554,7 @@ document.addEventListener('keydown', (e) => {
   if ((k === 'h' || k === 'H') && g.level.hints) { notebookOpen = !notebookOpen; if (notebookOpen) G.useHint(g); renderHud(true); return; }
   if (k === 'Enter' || k === ' ') {
     e.preventDefault();
+    if (performance.now() - overlayChangedAt < 450) return; // the card under the key just changed
     const t = e.target as HTMLInputElement;
     if (t.id === 'dial') G.setSauceDial(g, Number(t.value));
     const primary = document.querySelector<HTMLButtonElement>('#sheet .big:not([disabled])') && !$('#overlay').classList.contains('hidden')
@@ -624,12 +657,14 @@ function placeSpeech() {
   const chef = scene.chef?.root;
   const narrow = innerWidth < 760;
   if (!chef || narrow) { el.style.right = narrow ? '8px' : '18%'; el.style.top = narrow ? '64px' : '24%'; el.style.left = 'auto'; el.style.maxWidth = narrow ? '34%' : ''; return; }
-  const v = chef.position.clone(); v.y += 11.5; v.x -= 1.5;
+  // Anchor the bubble's tail just left of the chef's face so it never covers him.
+  const v = chef.position.clone(); v.y += 9.2; v.x -= 2.2;
   v.project(scene.camera);
   const x = ((v.x + 1) / 2) * innerWidth, y = ((1 - v.y) / 2) * innerHeight;
   el.style.left = 'auto';
-  el.style.right = `${Math.max(12, Math.min(innerWidth * 0.45, innerWidth - x - 40))}px`;
-  el.style.top = `${Math.max(150, Math.min(innerHeight * 0.45, y))}px`;
+  el.style.maxWidth = '';
+  el.style.right = `${Math.max(12, Math.min(innerWidth * 0.5, innerWidth - x))}px`;
+  el.style.top = `${Math.max(140, Math.min(innerHeight * 0.42, y - el.offsetHeight))}px`;
 }
 
 // ---------- loop ----------

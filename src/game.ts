@@ -364,17 +364,17 @@ export function hintText(g: GameState): string {
   const r = g.pie.r;
   const s = o.dough;
   switch (g.station) {
-    case 'mix': return o.mix ? `קמח : מים = 5 : 3 ⇐ מים = {{${g.mix.flour} × 3 ÷ 5}} גרם` : '';
+    case 'mix': return o.mix ? `{{קמח : מים = 5 : 3}} ⇐ מים = {{${g.mix.flour} × 3 ÷ 5}} גרם` : '';
     case 'dough':
       if (s.kind === 'byDiameter') return `רדיוס = קוטר ÷ 2 ⇐ {{r = ${s.d} ÷ 2}}`;
       if (s.kind === 'byRadius') return `ההזמנה כבר נותנת רדיוס: {{r = ${s.r}}}`;
-      if (s.kind === 'minArea') return `מחפשים r קטן ככל האפשר כך ש־{{π × r² ≥ ${s.minArea}}}. נסו: {{3.14 × ${r || 10}²}}`;
+      if (s.kind === 'minArea') return `מחפשים {{r}} קטן ככל האפשר כך ש־{{π × r² ≥ ${s.minArea}}}. נסו: {{3.14 × ${r || 10}²}}`;
       if (s.kind === 'percentLarger') return `מקדם כיפלי לעלייה של {{${s.percent}%}}: {{1 + ${s.percent}/100}}. קוטר חדש = {{${s.baseD} × מקדם}}, ואז רדיוס = קוטר ÷ 2`;
-      return `שטח כולל = מספר פיצות × π × r². השוו: {{1 × 3.14 × 20²}} מול {{2 × 3.14 × 14²}}`;
+      return `שטח כולל = מספר פיצות × {{π × r²}}. השוו: {{1 × 3.14 × 20²}} מול {{2 × 3.14 × 14²}}`;
     case 'sauce':
-      if (s.kind === 'percentLarger') return `כשהקוטר גדל פי k, השטח גדל פי k² (יחס שטחים). כאן {{k = 1 + ${s.percent}/100}}. או ישר: {{π × ${r || 'r'}²}}`;
-      return `שטח עיגול = π × r² ⇐ {{3.14 × ${r || 'r'}²}}${g.pie.count === 2 ? ' (לכל פיצה)' : ''}`;
-    case 'crust': return `היקף מעגל = 2 × π × r ⇐ {{2 × 3.14 × ${r || 'r'}}}`;
+      if (s.kind === 'percentLarger') return `כשהקוטר גדל פי {{k}}, השטח גדל פי {{k²}} (יחס שטחים). כאן {{k = 1 + ${s.percent}/100}}. או ישר: {{π × ${r || 'r'}²}}`;
+      return `שטח עיגול = {{π × r²}} ⇐ {{3.14 × ${r || 'r'}²}}${g.pie.count === 2 ? ' (לכל פיצה)' : ''}`;
+    case 'crust': return `היקף מעגל = {{2 × π × r}} ⇐ {{2 × 3.14 × ${r || 'r'}}}`;
     default: return 'כמעט שם! לתנור ואז לפעמון.';
   }
 }

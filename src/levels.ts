@@ -68,7 +68,7 @@ export const LEVELS: LevelDef[] = [
     stock: S(2600, 2400),
     ghost: { r: 10, sauce: 314 },
     tickets: [
-      { id: 'L4-a', customer: 'noa', order: { dough: { kind: 'percentLarger', baseD: 20, percent: 30 }, sauce: true, crust: false }, text: 'הרגילה שלי (קוטר {{20}}, רוטב {{314}} סמ״ר), אבל קוטר גדול ב־{{30%}}' },
+      { id: 'L4-a', customer: 'noa', order: { dough: { kind: 'percentLarger', baseD: 20, percent: 30 }, sauce: true, crust: false }, text: 'הרגילה שלי: קוטר {{20}}, רוטב {{314}} סמ״ר. היום — קוטר גדול ב־{{30%}}' },
     ],
   },
   {
@@ -105,7 +105,7 @@ export const LEVELS: LevelDef[] = [
       { id: 'L7-a', customer: 'saba', order: { dough: { kind: 'byDiameter', d: 30 }, sauce: true, crust: false }, text: 'קוטר {{30}} ס״מ, עם רוטב' },
       { id: 'L7-b', customer: 'noa', order: { dough: { kind: 'byRadius', r: 12 }, sauce: true, crust: true }, text: 'רדיוס {{12}} ס״מ, רוטב וקרום ממולא' },
       { id: 'L7-c', customer: 'kids', order: { dough: { kind: 'minArea', minArea: 1000 }, sauce: true, crust: false }, text: 'לפחות {{1000}} סמ״ר פיצה, הכי קטנה שאפשר, עם רוטב' },
-      { id: 'L7-d', customer: 'noa', order: { dough: { kind: 'percentLarger', baseD: 25, percent: 20 }, sauce: true, crust: false }, text: 'כמו הרגילה (קוטר {{25}}) אבל קוטר גדול ב־{{20%}}, עם רוטב' },
+      { id: 'L7-d', customer: 'noa', order: { dough: { kind: 'percentLarger', baseD: 25, percent: 20 }, sauce: true, crust: false }, text: 'הרגילה בקוטר {{25}}, אבל קוטר גדול ב־{{20%}}, עם רוטב' },
     ],
   },
 ];
