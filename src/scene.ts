@@ -769,8 +769,8 @@ export class PizzaScene {
       this.scene.add(root);
       const a: Actor = { root, mixer, actions, react: 0, mood: 'idle', home: pos.clone(), target: pos.clone(), baseY: pos.y, phase: Math.random() * 6, worry: 0 };
       const faceMeshes: THREE.Mesh[] = [];
-      root.traverse((m) => { const mm = m as THREE.Mesh; if (mm.isMesh && mm.morphTargetDictionary && 'blink' in mm.morphTargetDictionary) faceMeshes.push(mm); });
-      if (faceMeshes.length) { const d = faceMeshes[0].morphTargetDictionary!; a.face = { meshes: faceMeshes, blink: d.blink, smile: d.smile ?? -1, frown: d.frown ?? -1, nextBlink: 1 + Math.random() * 3, blinkT: -1, s: 0, f: 0 }; }
+      root.traverse((m) => { const mm = m as THREE.Mesh; const d = mm.isMesh ? mm.morphTargetDictionary : undefined; if (d && ('blink' in d || 'smile' in d)) faceMeshes.push(mm); });
+      if (faceMeshes.length) { const d = faceMeshes[0].morphTargetDictionary!; a.face = { meshes: faceMeshes, blink: d.blink ?? -1, smile: d.smile ?? -1, frown: d.frown ?? -1, nextBlink: 1 + Math.random() * 3, blinkT: -1, s: 0, f: 0 }; }
       this.play(a, 'idle');
       return a;
     };
@@ -1099,7 +1099,7 @@ export class PizzaScene {
     f.s = damp(f.s, smileGoal, 8, dt); f.f = damp(f.f, frownGoal, 8, dt);
     for (const m of f.meshes) {
       const inf = m.morphTargetInfluences!;
-      inf[f.blink] = blink;
+      if (f.blink >= 0) inf[f.blink] = blink;
       if (f.smile >= 0) inf[f.smile] = f.s;
       if (f.frown >= 0) inf[f.frown] = f.f;
     }

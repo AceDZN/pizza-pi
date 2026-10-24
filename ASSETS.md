@@ -82,7 +82,7 @@ Noa now has three morph targets (blendshapes), baked in Blender 5.2 headless by 
 - **blink:** vertices around each painted eye collapse toward a lid line just below the eye centre, so the skin above stretches over the painted eye and leaves a lash line.
 - **smile / frown:** a smooth parabola across the mouth lifts or drops the corners while the centre stays put.
 
-The painted features follow the vertices, so no texture work is needed. The glasses are a separate geometric part: the script welds UV seams, finds the part at the nose bridge and freezes it, so the frames never bend. Eye and mouth positions were read off an orthographic front render (`scripts/face/render_face.py`). The morphs survive gltf-transform/meshopt as `blink`, `smile`, `frown` (+12 KB). Proof strip: `design/screenshots/noa-face-morphs.png`.
+The painted features follow the vertices, so no texture work is needed. The glasses are a separate geometric part: the script welds UV seams, finds the part at the nose bridge and freezes it, so the frames never bend. Eye and mouth positions were read off an orthographic front render (`scripts/face/render_face.py`). The morphs survive gltf-transform/meshopt as `blink`, `smile`, `frown` (+12 KB). Proof strip for every character: `design/screenshots/face-morphs-all.png`.
 
 In the game (`animateFace` in `src/scene.ts`), any character whose mesh has these morph names:
 - blinks every 2–5 s, sometimes twice;
@@ -91,3 +91,18 @@ In the game (`animateFace` in `src/scene.ts`), any character whose mesh has thes
 - smiles fully when served well, frowns with droopy lids when disappointed.
 
 To add another character, read its eye and mouth positions from a front render and run the same script with those numbers.
+
+### All six characters (25 Oct)
+
+`npm run faces` (`scripts/face/build_all.sh`) bakes and optimizes all six from the `*-calm.glb` sources:
+
+| Character | Morphs | Notes |
+|---|---|---|
+| Noa | blink, smile, frown | glasses part frozen |
+| Chef | blink | the mustache hides the mouth; his eyes sit on a few big triangles, so the eye area is subdivided first (`subdiv=2`) |
+| Saba | blink | the beard hides the mouth; subdivided like the chef |
+| Ido | blink, smile, frown | |
+| Yoni | blink, smile, frown | |
+| Maya | smile, frown | her eyes are painted closed (happy arcs), so no blink |
+
+Each strip in `face-morphs-all.png` shows neutral / blink / smile / frown; a character without a key repeats neutral in that slot. Two bugs fixed along the way: vertices behind the face, like the chef's eyeball interior and hair, stayed put and tore the paint, so each key now moves only a depth window measured from the feature's front surface. For the chef and Saba, the lower lid has to rise almost as far as the upper one comes down, or the bottom of the painted eye smears. In the game, a face with only some of the morph names just skips the missing ones.

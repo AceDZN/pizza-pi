@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 5177 --strictPort",
     "test": "tsx --test tests/*.test.ts",
-    "face:noa": "/Applications/Blender.app/Contents/MacOS/Blender -b --python scripts/face/build_face.py -- scripts/raw/noa-calm.glb scripts/raw/noa-face.glb scripts/raw/noa-face.blend -0.030 0.829 0.034 0.829 -0.019 0.787 0.015 0.786 0.019 0.016 && npx @gltf-transform/cli@4.2.1 optimize scripts/raw/noa-face.glb public/models/noa.glb --compress meshopt --texture-compress webp --texture-size 1024 --simplify false"
+    "faces": "sh scripts/face/build_all.sh"
   },
   "dependencies": {
     "@fontsource/rubik": "5.2.8",
