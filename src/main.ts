@@ -50,7 +50,7 @@ const ICON: Record<string, string> = {
 };
 const COIN = '<svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#f2c45a" stroke="#8a6414" stroke-width="2"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="900" fill="#8a6414">₪</text></svg>';
 const STATION_NAME: Record<Station, string> = { mix: 'קערה', dough: 'בצק', sauce: 'רוטב', crust: 'קרום', toppings: 'תוספות', oven: 'תנור' };
-const CUSTOMER_NAME: Record<string, string> = { noa: 'נועה', saba: 'סבא מוטי', kids: 'שלושת הילדים' };
+const CUSTOMER_NAME: Record<string, string> = { noa: 'נועה', saba: 'סבא מוטי', kids: 'עידו, מאיה ויוני' };
 const TOPPING_NAME = { basil: 'בזיליקום', pepperoni: 'פפרוני', olive: 'זיתים', mushroom: 'פטריות' } as const;
 
 // ---------- DOM ----------

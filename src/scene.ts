@@ -717,9 +717,10 @@ export class PizzaScene {
       return wrap;
     };
     onProgress('מחממים את התנור…');
-    const [oven, bottle, chef, noa, saba] = await Promise.all(['oven.glb', 'sauce-bottle.glb', 'chef.glb', 'noa.glb', 'saba.glb'].map(load));
+    const [oven, bottle, chef, noa, saba, kidA, kidB, kidC] = await Promise.all(['oven.glb', 'sauce-bottle.glb', 'chef.glb', 'noa.glb', 'saba.glb', 'kid-ido.glb', 'kid-maya.glb', 'kid-yoni.glb'].map(load));
     const info = (name: string, g: { scene: THREE.Object3D; animations: THREE.AnimationClip[] } | null) => this.modelInfo.push({ name, ok: !!g, triangles: g ? tris(g.scene) : 0, animations: g ? g.animations.map((a) => a.name) : [] });
     info('oven', oven); info('sauce-bottle', bottle); info('chef', chef); info('noa', noa); info('saba', saba);
+    info('kid-ido', kidA); info('kid-maya', kidB); info('kid-yoni', kidC);
 
     if (oven) { const o = fit(oven.scene, 6.8); this.oven.add(o); this.oven.rotation.y = 0.62; }
     else { const dome = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#b8583a' })); dome.position.y = 4.6; this.oven.add(dome); }
@@ -774,11 +775,9 @@ export class PizzaScene {
     const noaPos = new THREE.Vector3(30, FLOOR_Y, WALL_Z - 3);
     this.customers.noa = [actor(noa, 9.4, '#9b6fd1', noaPos.clone().setY(-5.6))];
     this.customers.saba = [actor(saba, 10.4, '#3f8f3a', noaPos.clone().setY(-6.5))];
-    this.customers.kids = [0, 1, 2].map((i) => {
-      const a = actor(noa, 7.4 + i * 0.4, '#9b6fd1', noaPos.clone().setY(-4.4 - i * 0.4), true);
-      a.root.traverse((m) => { const mm = (m as THREE.Mesh).material as THREE.MeshStandardMaterial; if ((m as THREE.Mesh).isMesh && mm?.color) { (m as THREE.Mesh).material = mm.clone(); ((m as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set(['#ffffff', '#9fd4ff', '#ffc89a'][i]); } });
-      return a;
-    });
+    // Three different kids (Ido 8, Maya 6, Yoni 10), each their own Tripo model; heights follow their ages.
+    const kids = [[kidA, 7.6], [kidB, 6.6], [kidC, 8.4]] as const;
+    this.customers.kids = kids.map(([m, h], i) => actor(m ?? noa, h, ['#3f8f3a', '#f2c45a', '#e07a2e'][i], noaPos.clone().setY(-3.6 - (h - 6.6) * 0.6), !m));
     onProgress('');
   }
 
@@ -1001,7 +1000,7 @@ export class PizzaScene {
         const isActive = tk?.def.customer === id && g.phase !== 'levelDone' && g.phase !== 'finished';
         const waiting = openCustomers.has(id as CustomerId) && !isActive && g.phase === 'playing';
         // The active customer leans in at the pass window; others queue along the wall.
-        if (isActive) a.target.set(1.4 + (list.length > 1 ? (i - 1) * 1.9 : 0), a.baseY, WALL_Z + 1.3);
+        if (isActive) a.target.set(1.4 + (list.length > 1 ? (i - 1) * 2.3 : 0), a.baseY, WALL_Z + 1.3 + (list.length > 1 && i === 1 ? 0.6 : 0));
         else if (waiting) a.target.set(-1 + i * 1.5 + Object.keys(this.customers).indexOf(id) * 1.2, a.baseY, WALL_Z - 3); // queued out of sight behind the wall
         else a.target.set(18 + i * 2, a.baseY, WALL_Z + 1);
         this.animateActor(a, dt);
