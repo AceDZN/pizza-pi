@@ -24,7 +24,7 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #1a0f0b; touch-action: none; -webkit-user-select: none; user-select: none; }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-block; }
 
 #app { position: fixed; inset: 0; }
 #stage { position: absolute; inset: 0; }
@@ -87,7 +87,8 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .control h3 { margin: 0 0 6px; font-size: 22px; font-weight: 900; }
 .control .readout { display: flex; align-items: center; justify-content: center; gap: 6px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; font-size: 32px; font-weight: 900; padding: 4px 10px; margin: 6px 0; }
 .control .readout small { font-size: 18px; }
-.control .row.steps { direction: ltr; }
+.control .row.steps { direction: ltr; flex-wrap: nowrap; gap: 4px; }
+.control .row.steps .chip { min-width: 0; padding: 7px 2px; font-size: 14px; flex: 1 1 0; }
 .control .row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
 .chip { min-width: 46px; padding: 8px 10px; border-radius: 12px; background: var(--cream); border: 2.5px solid var(--brown); font-weight: 900; font-size: 16px; box-shadow: 0 3px 0 rgba(58,34,20,.35); }
 .chip:active { transform: translateY(2px); box-shadow: none; }
@@ -175,9 +176,11 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
   .tools { top: 8px; left: 8px; gap: 6px; }
   .round { width: 40px; height: 40px; border-width: 2px; }
   .round svg { width: 20px; height: 20px; }
-  .tickets { top: 58px; left: 8px; right: 8px; transform: none; justify-content: center; }
-  .ticket { width: auto; max-width: 260px; padding: 12px 10px 8px; }
-  .ticket .order { font-size: 15px; }
+  .tickets { top: 56px; left: 8px; right: 8px; transform: none; justify-content: flex-end; }
+  .ticket { width: auto; max-width: 62%; padding: 12px 10px 6px; }
+  .ticket .who { font-size: 11px; }
+  .ticket .order { font-size: 14px; margin: 2px 0 4px; }
+  .ticket .patience { font-size: 10px; }
   .tickets.many { flex-wrap: wrap; gap: 4px; }
   .tickets.many .ticket { width: calc(50% - 4px); padding: 10px 6px 6px; }
   .tickets.many .ticket .order { font-size: 12px; margin: 2px 0 4px; }

@@ -100,6 +100,7 @@ export function start(g: GameState) {
   g.phase = 'playing';
   log(g, 'level_start');
   cue(g, 'ticket');
+  cue(g, 'station', { station: g.station });
 }
 
 /** Stations this ticket uses; toppings is always optional. */

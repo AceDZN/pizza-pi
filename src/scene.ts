@@ -37,9 +37,15 @@ class Particles {
   private m = new THREE.Matrix4();
   private q = new THREE.Quaternion();
   private s = new THREE.Vector3();
-  constructor(scene: THREE.Scene, n = 700) {
-    const geo = new THREE.IcosahedronGeometry(1, 0);
-    const mat = new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0, flatShading: true });
+  private tmp = new THREE.Color();
+  private soft: boolean;
+  constructor(scene: THREE.Scene, n = 700, soft = false) {
+    this.soft = soft;
+    // Soft particles (steam, embers, flour) glow additively and fade to black; solid ones are chunky bits.
+    const geo = soft ? new THREE.SphereGeometry(1, 10, 8) : new THREE.IcosahedronGeometry(1, 0);
+    const mat = soft
+      ? new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+      : new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0, flatShading: true });
     this.mesh = new THREE.InstancedMesh(geo, mat, n);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;
@@ -82,7 +88,7 @@ class Particles {
       this.s.set(sc, sc, sc);
       this.m.compose(it.p, this.q, this.s);
       this.mesh.setMatrixAt(i, this.m);
-      this.mesh.setColorAt(i, it.color);
+      this.mesh.setColorAt(i, this.soft ? this.tmp.copy(it.color).multiplyScalar(Math.min(1, f * 1.5)) : it.color);
     });
     this.mesh.instanceMatrix.needsUpdate = true;
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
@@ -151,7 +157,8 @@ class PieView {
     this.shownR = damp(this.shownR, R, 18, dt);
     const r = this.shownR;
     const isBall = pie.r <= 0;
-    this.ball.visible = isBall;
+    const mixing = !!g.level.tickets[0].order.mix;
+    this.ball.visible = isBall && (!mixing || (g.mix.kneaded && g.station !== 'mix'));
     this.ball.position.y = PIE_Y + 0.25 * K;
     this.dough.visible = this.edge.visible = !isBall && r > 0.05;
     const w = 1 + Math.sin(this.wobble * 30) * 0.12 * this.wobble;
@@ -306,7 +313,7 @@ function crustGeometry(Lcm: number, rcm: number) {
     pts.push(new THREE.Vector3(Math.cos(a) * rr, 0.6 * U + lift, Math.sin(a) * rr));
   }
   const curve = new THREE.CatmullRomCurve3(pts);
-  return new THREE.TubeGeometry(curve, steps, 1.0 * U, 10, false);
+  return new THREE.TubeGeometry(curve, steps, 1.5 * U, 12, false);
 }
 
 // ---------------- characters ----------------
@@ -319,6 +326,7 @@ export class PizzaScene {
   scene = new THREE.Scene();
   camera: THREE.PerspectiveCamera;
   particles: Particles;
+  soft: Particles;
   pies: PieView[];
   peel = new THREE.Group();
   ovenLight: THREE.PointLight;
@@ -333,7 +341,7 @@ export class PizzaScene {
   tape!: THREE.Mesh;
   doughRuler: THREE.Mesh;
   rulerPin: THREE.Sprite;
-  ghost: THREE.LineLoop;
+  ghost: THREE.Mesh;
   ghostLabel: THREE.Sprite;
   mixGroup = new THREE.Group();
   flourMound!: THREE.Mesh;
@@ -357,6 +365,7 @@ export class PizzaScene {
   private raycaster = new THREE.Raycaster();
   private counterPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -PIE_Y);
   reducedMotion = false;
+  private lampParts: THREE.Object3D[] = [];
   camOverride: { look: number[]; width: number; pitch: number; yaw: number } | null = null;
   lost = false;
   fps = 0;
@@ -378,6 +387,7 @@ export class PizzaScene {
 
     this.buildRoom();
     this.particles = new Particles(this.scene);
+    this.soft = new Particles(this.scene, 400, true);
     const dt = doughTexture(), st = sauceTexture();
     this.pies = [new PieView(dt, st), new PieView(dt, st)];
     this.buildPeel();
@@ -398,9 +408,8 @@ export class PizzaScene {
     this.rulerPin.renderOrder = 10;
     this.scene.add(this.rulerPin);
 
-    const ghostGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 129 }, (_, i) => { const a = (i / 128) * Math.PI * 2; return new THREE.Vector3(Math.cos(a), 0, Math.sin(a)); }));
-    this.ghost = new THREE.LineLoop(ghostGeo, new THREE.LineDashedMaterial({ color: '#ffffff', dashSize: 0.08, gapSize: 0.06, transparent: true, opacity: 0.9, depthTest: false }));
-    this.ghost.computeLineDistances();
+    // Level 4: the regular's usual pie (r = 10) drawn as a bright ring inside the new one.
+    this.ghost = new THREE.Mesh(new THREE.RingGeometry(0.965, 1, 128, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthTest: false }));
     this.ghost.renderOrder = 9;
     this.ghostLabel = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture('הרגילה', 'rgba(255,255,255,0.85)', '#3a2214'), depthTest: false }));
     this.ghostLabel.scale.set(1.1, 0.41, 1);
@@ -442,6 +451,7 @@ export class PizzaScene {
     const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 8), new THREE.MeshBasicMaterial({ color: '#111' }));
     cord.position.set(1.5, 14.2, -1.0);
     s.add(shade, bulb, cord);
+    this.lampParts = [shade, bulb, cord];
 
     // Butcher-block counter on a terracotta body with a tiled front.
     const wood = woodTexture();
@@ -554,7 +564,7 @@ export class PizzaScene {
     board.position.y = PEEL_Y - 0.03; board.receiveShadow = true; board.castShadow = true;
     board.scale.x = 1.1;
     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.1, 3.2), wood);
-    handle.position.set(-0.6 * 4.1, PEEL_Y - 0.03, 0.8 * 4.1); handle.rotation.y = Math.atan2(-0.6, 0.8); handle.castShadow = true;
+    handle.position.set(-0.6 * 4.1, PEEL_Y - 0.03, 0.8 * 4.1); handle.rotation.y = Math.atan2(-0.94, 0.34); handle.castShadow = true;
     this.peel.add(board, handle);
     this.peel.userData.board = board;
     this.peel.userData.handle = handle;
@@ -747,7 +757,7 @@ export class PizzaScene {
     this.customers.saba = [actor(saba, 10.4, '#3f8f3a', noaPos.clone().setY(-5.3))];
     this.customers.kids = [0, 1, 2].map((i) => {
       const a = actor(noa, 7.4 + i * 0.4, '#9b6fd1', noaPos.clone().setY(-3.5 - i * 0.4), true);
-      a.root.traverse((m) => { const mm = (m as THREE.Mesh).material as THREE.MeshStandardMaterial; if ((m as THREE.Mesh).isMesh && mm?.color) { (m as THREE.Mesh).material = mm.clone(); ((m as THREE.Mesh).material as THREE.MeshStandardMaterial).color.offsetHSL([0, 0.35, -0.25][i], 0, 0); } });
+      a.root.traverse((m) => { const mm = (m as THREE.Mesh).material as THREE.MeshStandardMaterial; if ((m as THREE.Mesh).isMesh && mm?.color) { (m as THREE.Mesh).material = mm.clone(); ((m as THREE.Mesh).material as THREE.MeshStandardMaterial).color.set(['#ffffff', '#9fd4ff', '#ffc89a'][i]); } });
       return a;
     });
     onProgress('');
@@ -791,14 +801,14 @@ export class PizzaScene {
     const pieWorld = this.peel.position.clone().add(new THREE.Vector3(0, PIE_Y + 0.2, 0));
     const R = Math.max(0.6, g.pie.r * U);
     switch (c.kind) {
-      case 'stretch': this.pies.forEach((p) => (p.wobble = 0.6)); if (Math.random() < 0.5) this.particles.emit({ pos: pieWorld.clone().add(new THREE.Vector3(R, 0, 0)), n: 6, color: '#fff8e8', speed: 1.2, up: 1.4, size: 0.05, life: 0.7, g: 1.5, drag: 2 }); break;
+      case 'stretch': this.pies.forEach((p) => (p.wobble = 0.6)); if (Math.random() < 0.5) this.soft.emit({ pos: pieWorld.clone().add(new THREE.Vector3(R, 0, 0)), n: 6, color: '#fff8e8', speed: 1.2, up: 1.4, size: 0.05, life: 0.7, g: 1.5, drag: 2 }); break;
       case 'tray': this.shakeCam(0.25); break;
       case 'squeeze': this.bottleSquash = 1; setTimeout(() => this.particles.emit({ pos: pieWorld, n: 24, color: ['#c8311f', '#e04a2a'], speed: 2.2, up: 1.6, size: 0.07, life: 0.8 }), 250); break;
       case 'overflow': this.bottleSquash = 1.4; this.shakeCam(0.5); setTimeout(() => this.particles.emit({ pos: pieWorld, n: 70, color: ['#c8311f', '#e04a2a', '#8a1c10'], speed: 4.5, up: 3, size: 0.09, life: 1.2 }), 250); break;
       case 'cut': this.knifeDrop = 1; this.shakeCam(0.18); this.particles.emit({ pos: this.ropeEnd.position.clone(), n: 16, color: ['#ffe08a', '#f5cf5a'], speed: 2, up: 2.5, size: 0.06, life: 0.7 }); break;
       case 'topping': break;
-      case 'bake_start': this.particles.emit({ pos: OVEN_MOUTH.clone(), n: 40, color: ['#ffb347', '#ff7a1a', '#ffd27a'], speed: 1.5, up: 4, size: 0.06, life: 1.4, g: -1, drag: 1.5 }); break;
-      case 'bake_done': this.particles.emit({ pos: pieWorld, n: 40, color: ['#fffaf2', '#efe8dc'], speed: 0.5, up: 1.6, size: 0.05, life: 1.8, g: -0.5, drag: 1.4, grow: 1.2, spread: R * 1.6 }); break;
+      case 'bake_start': this.soft.emit({ pos: OVEN_MOUTH.clone(), n: 40, color: ['#ffb347', '#ff7a1a', '#ffd27a'], speed: 1.5, up: 4, size: 0.06, life: 1.4, g: -1, drag: 1.5 }); break;
+      case 'bake_done': this.soft.emit({ pos: pieWorld, n: 50, color: ['#8a8580', '#a09890'], speed: 0.5, up: 1.6, size: 0.16, life: 1.8, g: -0.5, drag: 1.4, grow: 1.2, spread: R * 1.6 }); break;
       case 'serve': {
         this.bellBounce = 1;
         const cust = this.activeCustomers(g);
@@ -809,7 +819,7 @@ export class PizzaScene {
         if (!ok) this.shakeCam(0.35);
         break;
       }
-      case 'knead': this.particles.emit({ pos: this.mixGroup.position.clone().add(new THREE.Vector3(0, 1.4, 0)), n: 30, color: '#fffaf0', speed: 1.5, up: 2, size: 0.07, life: 1, g: 1, drag: 2 }); break;
+      case 'knead': this.soft.emit({ pos: this.mixGroup.position.clone().add(new THREE.Vector3(0, 1.4, 0)), n: 30, color: '#fffaf0', speed: 1.5, up: 2, size: 0.07, life: 1, g: 1, drag: 2 }); break;
       case 'pour': if (c.values?.what === 'flour') this.particles.emit({ pos: this.mixGroup.position.clone().add(new THREE.Vector3(0, 1.8, 0)), n: 8, color: '#fffaf0', speed: 0.8, up: 1, size: 0.07, life: 0.9, g: 1, drag: 2 }); else this.pourTilt = 1; break;
       case 'tear': case 'crack': this.shakeCam(0.3); this.particles.emit({ pos: pieWorld, n: 25, color: ['#f2dcae', '#fff8e8'], speed: 2, up: 2, size: 0.07, life: 0.9 }); break;
       case 'trash': this.particles.emit({ pos: pieWorld, n: 20, color: ['#f2dcae', '#c8311f'], speed: 3, up: 3, size: 0.08, life: 0.8 }); break;
@@ -852,7 +862,7 @@ export class PizzaScene {
     const br = Math.max(1.3 * K, this.pies[0].shownR + 0.45);
     board.scale.set(two ? br * 2.05 : br, 1, br);
     const handle = this.peel.userData.handle as THREE.Mesh;
-    handle.position.set(-0.6 * (br + 1.5), PEEL_Y - 0.03, 0.8 * (br + 1.5));
+    handle.position.set(-0.94 * (br + 1.5), PEEL_Y - 0.03, 0.34 * (br + 1.5));
 
     // ---- pies ----
     this.pies[1].group.visible = two;
@@ -916,7 +926,7 @@ export class PizzaScene {
       this.flourMound.position.y = 0.2;
       this.water.visible = !g.mix.kneaded && g.mix.water > 0;
       this.water.position.y = 0.2 + Math.min(1.2, g.mix.water / 600);
-      this.mixBall.visible = g.mix.kneaded && pie.r <= 0;
+      this.mixBall.visible = g.mix.kneaded && pie.r <= 0 && st === 'mix';
       this.mixBall.position.y = 0.75;
       const kn = g.busy?.kind === 'knead' ? Math.sin(this.time * 18) * 0.15 : 0;
       this.mixBall.scale.set(1 + kn, 0.7 - kn, 1 + kn);
@@ -944,7 +954,7 @@ export class PizzaScene {
     // ---- oven light flicker ----
     const baking = g.busy?.kind === 'bake' ? 1 : 0;
     this.ovenLight.intensity = (baking ? 120 : 55) + Math.sin(this.time * 13) * 8 + Math.sin(this.time * 7.3) * 6 + (Math.random() - 0.5) * 6;
-    if (Math.random() < (baking ? 0.6 : 0.08)) this.particles.emit({ pos: OVEN_MOUTH.clone().add(new THREE.Vector3(Math.random() - 0.5, 0.2, 0.3)), n: 1, color: ['#ffb347', '#ff7a1a'], speed: 0.4, up: 1.8, size: 0.035, life: 1.6, g: -0.5, drag: 0.6 });
+    if (Math.random() < (baking ? 0.6 : 0.08)) this.soft.emit({ pos: OVEN_MOUTH.clone().add(new THREE.Vector3(Math.random() - 0.5, 0.2, 0.3)), n: 1, color: ['#ffb347', '#ff7a1a'], speed: 0.4, up: 1.8, size: 0.035, life: 1.6, g: -0.5, drag: 0.6 });
 
     // ---- characters ----
     const tk = activeTicket(g);
@@ -973,19 +983,25 @@ export class PizzaScene {
     p.needsUpdate = true;
 
     this.particles.update(dt);
+    this.soft.update(dt);
 
     // ---- camera ----
     const look = new THREE.Vector3();
     let width = 19, pitch = 0.62, yaw = 0.16;
     if (g.phase === 'intro' || g.phase === 'levelDone' || g.phase === 'finished' || g.phase === 'shiftOver') { look.set(-0.5, 2.2, -2.5); width = 22; pitch = 0.5; }
-    else if (g.phase === 'result') { look.set(PICKUP.x, 3.2, -5.5); width = 13; pitch = 0.3; yaw = 0; }
+    else if (g.phase === 'result') { look.set(PICKUP.x + 0.6, 2.6, -5.0); width = 19; pitch = 0.34; yaw = 0.05; }
     else if (g.busy?.kind === 'bake' || st === 'oven') { look.set(-3.4, 1.0, -1.8); width = 18; pitch = 0.58; yaw = 0.3; }
     else if (st === 'crust') { look.set(0, 0.3, 0.6); width = 22; pitch = 0.92; yaw = 0.08; }
     else if (st === 'mix') { look.set(MIX_POS.x - 1.4, 1.0, -0.8); width = 15; pitch = 0.7; }
     else { look.set(-0.4, 1.2, -1.8); width = Math.max(19, (pie.r * U) * 2 * (two ? 2.2 : 1) + 13); pitch = 0.68; }
     if (this.camOverride) { look.fromArray(this.camOverride.look); width = this.camOverride.width; pitch = this.camOverride.pitch; yaw = this.camOverride.yaw; }
     const portrait = this.camera.aspect < 0.9;
-    if (portrait) { width *= 0.6; pitch = Math.min(1.12, pitch + 0.22); look.z += g.phase === 'playing' ? 2.4 : 0.8; look.y -= 0.4; yaw *= 0.3; }
+    if (portrait) { width *= 0.52; pitch = Math.min(1.2, pitch + 0.36); look.z += 0.9; look.y -= 0.8; yaw *= 0.3; }
+    // On phones the control card covers the bottom quarter: centre the 3D view in the part above it.
+    const cw = this.renderer.domElement.width, ch = this.renderer.domElement.height;
+    if (portrait && g.phase === 'playing') this.camera.setViewOffset(cw, ch * 1.22, 0, 0, cw, ch);
+    else if (this.camera.view?.enabled) this.camera.clearViewOffset();
+    this.lampParts.forEach((m) => (m.visible = !portrait));
     const pos = new THREE.Vector3();
     this.frame(look, width, pitch, yaw, pos);
     if (!Number.isFinite(this.camPos.x + this.camPos.y + this.camPos.z)) this.camPos.copy(pos);
@@ -1002,8 +1018,8 @@ export class PizzaScene {
   private animateActor(a: Actor, dt: number) {
     a.mixer?.update(dt);
     const moving = a.root.position.distanceTo(a.target) > 0.1;
-    a.root.position.x = damp(a.root.position.x, a.target.x, 2.2, dt);
-    a.root.position.z = damp(a.root.position.z, a.target.z, 2.2, dt);
+    a.root.position.x = damp(a.root.position.x, a.target.x, 3.5, dt);
+    a.root.position.z = damp(a.root.position.z, a.target.z, 3.5, dt);
     a.phase += dt;
     a.react = Math.max(0, a.react - dt);
     const hop = a.mood === 'happy' && a.react > 0 ? Math.abs(Math.sin(a.react * 8)) * 1.2 : 0;

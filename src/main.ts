@@ -198,6 +198,8 @@ function busyText() {
 
 function renderControl() {
   const el = $('#control');
+  // Never rebuild the card under the player's fingers while they type a sauce amount.
+  if (document.activeElement?.id === 'dial' && g.station === 'sauce' && g.phase === 'playing' && !g.busy) return;
   const p = g.pie;
   const o = G.activeTicket(g).def.order;
   if (g.phase !== 'playing') { el.style.display = 'none'; return; }
@@ -265,7 +267,14 @@ function renderControl() {
   }
   el.innerHTML = html;
   const dial = el.querySelector<HTMLInputElement>('#dial');
-  if (dial) dial.addEventListener('change', () => { G.setSauceDial(g, Number(dial.value)); renderHud(true); });
+  if (dial) {
+    dial.addEventListener('input', () => {
+      G.setSauceDial(g, Number(dial.value));
+      const needle = el.querySelector<SVGGElement>('.gauge g');
+      needle?.setAttribute('transform', `rotate(${-90 + 180 * Math.min(1, g.sauceDial / 1600)} 100 100)`);
+    });
+    dial.addEventListener('change', () => { G.setSauceDial(g, Number(dial.value)); });
+  }
 }
 
 /** Semicircle sauce gauge (design/mockups/02): needle over 0–1600 cm², the number is typed or stepped. */
@@ -513,6 +522,8 @@ document.addEventListener('keydown', (e) => {
   if ((k === 'h' || k === 'H') && g.level.hints) { notebookOpen = !notebookOpen; if (notebookOpen) G.useHint(g); renderHud(true); return; }
   if (k === 'Enter' || k === ' ') {
     e.preventDefault();
+    const t = e.target as HTMLInputElement;
+    if (t.id === 'dial') G.setSauceDial(g, Number(t.value));
     const primary = document.querySelector<HTMLButtonElement>('#sheet .big:not([disabled])') && !$('#overlay').classList.contains('hidden')
       ? document.querySelector<HTMLButtonElement>('#sheet .big')
       : document.querySelector<HTMLButtonElement>('#control .big:not([disabled])');
@@ -612,7 +623,7 @@ function placeSpeech() {
   const el = $('#speech');
   const chef = scene.chef?.root;
   const narrow = innerWidth < 760;
-  if (!chef || narrow) { el.style.right = narrow ? '10px' : '18%'; el.style.top = narrow ? '150px' : '24%'; el.style.left = 'auto'; return; }
+  if (!chef || narrow) { el.style.right = narrow ? '8px' : '18%'; el.style.top = narrow ? '64px' : '24%'; el.style.left = 'auto'; el.style.maxWidth = narrow ? '34%' : ''; return; }
   const v = chef.position.clone(); v.y += 11.5; v.x -= 1.5;
   v.project(scene.camera);
   const x = ((v.x + 1) / 2) * innerWidth, y = ((1 - v.y) / 2) * innerHeight;
