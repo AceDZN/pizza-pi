@@ -128,3 +128,12 @@ test('running out of a stock is detected for the open tickets', () => {
   assert.equal(outOfStock({ dough: 200, sauce: 1000, cheese: 0, flour: 0, water: 0 }, [o]), 'dough');
   assert.equal(outOfStock({ dough: 2000, sauce: 100, cheese: 0, flour: 0, water: 0 }, [o]), 'sauce');
 });
+
+test('calculator evaluates the expressions kids type', async () => {
+  const { evaluate } = await import('../src/calc.ts');
+  assert.equal(Math.round(evaluate('3.14×10²')! * 100) / 100, 314);
+  assert.equal(Math.round(evaluate('2×π×15')! * 10) / 10, 94.2);
+  assert.equal(evaluate('√(1000÷π)')!.toFixed(2), '17.84');
+  assert.equal(evaluate('900×3÷5'), 540);
+  assert.equal(evaluate('2('), null);
+});
