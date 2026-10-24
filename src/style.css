@@ -55,7 +55,10 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .ticket .order { font-size: 19px; font-weight: 900; line-height: 1.2; margin: 4px 0 8px; }
 .ticket .patience { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .ticket .bar { flex: 1; height: 10px; border-radius: 6px; background: #e2d3b4; border: 2px solid var(--brown); overflow: hidden; }
-.ticket .bar i { display: block; height: 100%; background: linear-gradient(#a4e36c, var(--basil)); transition: width .3s; }
+.ticket .bar i { display: block; height: 100%; background: linear-gradient(#a4e36c, var(--basil)); transition: width .25s linear, background .4s; }
+.ticket .bar i[data-level="meh"] { background: linear-gradient(#ffe08a, #e0a83a); }
+.ticket .bar i[data-level="low"], .ticket .bar i[data-level="out"] { background: linear-gradient(#ff9a7a, var(--red)); }
+.ticket .bar i[data-level="out"] { width: 100% !important; animation: pulse .5s infinite alternate; }
 .ticket.active { outline: 4px solid var(--leaf); }
 .ticket.done { opacity: .55; }
 .ticket.done::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; font-weight: 900; color: var(--basil); }

@@ -1,7 +1,7 @@
 import './style.css';
 import * as G from './game';
 import { LEVELS } from './levels';
-import { area, circumference, crustRange, round1, sauceRange, target, waterRange, type Reason } from './rules';
+import { area, circumference, crustRange, PATIENCE_MS, round1, sauceRange, target, waterRange, type Reason } from './rules';
 import { PizzaScene, U } from './scene';
 import { Sound } from './audio';
 import { evaluate } from './calc';
@@ -138,11 +138,19 @@ function renderHud(force = false) {
   renderNotebook();
 }
 
+const outOfPatience = new Set<string>();
 /** Timers change every frame: update them in place so buttons are never rebuilt mid-click. */
 function updateLive() {
   document.querySelectorAll<HTMLElement>('#tickets [data-bar]').forEach((b) => {
     const t = g.tickets[Number(b.dataset.bar)];
-    if (t) b.style.width = `${Math.max(0, 1 - t.age / 90000) * 100}%`;
+    if (!t) return;
+    const f = Math.max(0, 1 - t.age / PATIENCE_MS);
+    b.style.width = `${f * 100}%`;
+    b.dataset.level = f > 2 / 3 ? 'ok' : f > 1 / 3 ? 'meh' : f > 0 ? 'low' : 'out';
+    const label = b.closest('.patience')?.querySelector('span');
+    const text = t.done ? 'הוגש!' : f > 0 ? 'סבלנות הלקוח:' : 'מתחילים להתעצבן…';
+    if (label && label.textContent !== text) label.textContent = text;
+    if (f === 0 && !t.done && !outOfPatience.has(t.def.id) && g.phase === 'playing') { outOfPatience.add(t.def.id); say(`${CUSTOMER_NAME[t.def.customer]}: ${({ kids: 'אנחנו ממש רעבים! יש מצב לזרז?', noa: 'אני ממש רעבה… יש מצב לזרז?', saba: 'אני כבר ממש רעב… יש מצב לזרז?' } as Record<string, string>)[t.def.customer]}`); }
   });
   const c = document.querySelector<HTMLElement>('#tickets .clock');
   if (c && g.shiftLeft !== null) {
@@ -157,7 +165,7 @@ function renderTickets() {
   el.classList.toggle('many', g.tickets.length > 1);
   const clock = g.shiftLeft !== null ? `<div class="clock"></div>` : '';
   el.innerHTML = g.tickets.map((t, i) => {
-    const patience = Math.max(0, 1 - t.age / 90000);
+    const patience = Math.max(0, 1 - t.age / PATIENCE_MS);
     return `<button class="ticket ${i === g.active ? 'active' : ''} ${t.done ? 'done' : ''}" data-ticket="${i}" aria-label="הזמנה ${i + 1}">
       <div class="who">${CUSTOMER_NAME[t.def.customer]}${t.attempts && !t.done ? ` · ניסיון ${t.attempts + 1}` : ''}</div>
       <div class="order">${fmtText(t.def.text)}</div>

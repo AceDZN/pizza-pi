@@ -156,11 +156,15 @@ export function judge(order: Order, pie: Pie): Verdict {
   return { outcome, reasons, stars, want: { r: t.r, count: t.count, sauce, crust } };
 }
 
-/** Tips never go negative: accuracy plus a little speed bonus. */
+/** How long a customer waits happily (the ticket's patience meter). */
+export const PATIENCE_MS = 60000;
+
+/** Tips never go negative: accuracy plus a speed bonus that follows the patience meter. */
 export function tips(v: Verdict, seconds: number, toppings: number): number {
   if (v.outcome === 'fail') return 0;
   const base = v.stars * 4;
-  const speed = seconds < 30 ? 4 : seconds < 60 ? 2 : seconds < 90 ? 1 : 0;
+  const left = 1 - (seconds * 1000) / PATIENCE_MS;
+  const speed = left > 2 / 3 ? 4 : left > 1 / 3 ? 2 : left > 0 ? 1 : 0;
   const garnish = Math.min(Math.floor(toppings / 3), 2);
   return base + speed + garnish;
 }
