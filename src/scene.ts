@@ -528,7 +528,7 @@ export class PizzaScene {
     }
 
     // Chalkboard menu left of the window.
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 2.9), new THREE.MeshStandardMaterial({ map: chalkboardTexture(['תפריט', 'מרגריטה · קוטר 30', 'קרום ממולא · 2πr', 'משפחתית · πr²', 'בצק 5 : 3']), roughness: 0.9 }));
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 2.9), new THREE.MeshStandardMaterial({ map: chalkboardTexture(['תפריט', 'מרגריטה · קוטר 30', 'קרום ממולא · 2πr', 'משפחתית · πr²', 'בצק · 5 : 3']), roughness: 0.9 }));
     board.position.set(-6.2, 4.6, WALL_Z + 0.05);
     s.add(board);
     // String lights across the wall.
@@ -768,7 +768,7 @@ export class PizzaScene {
       this.play(a, 'idle');
       return a;
     };
-    onProgress('מזמינים לקוחות…');
+    onProgress('פותחים את הדלת ללקוחות…');
     this.chef = actor(chef, 10.8, '#ffffff', new THREE.Vector3(8.6, FLOOR_Y, -5.6));
     this.chef.root.rotation.y = -0.55;
     const noaPos = new THREE.Vector3(30, FLOOR_Y, WALL_Z - 3);

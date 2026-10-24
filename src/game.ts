@@ -138,7 +138,7 @@ export function pour(g: GameState, what: 'water' | 'flour', grams: number) {
 export function knead(g: GameState) {
   const o = order(g);
   if (!canAct(g) || g.station !== 'mix' || !o.mix || g.mix.kneaded) return;
-  if (g.mix.water <= 0) { say(g, 'בלי מים זה סתם ערימת קמח. מזגו קודם מים.'); return; }
+  if (g.mix.water <= 0) { say(g, 'בלי מים אין בצק, רק ערימת קמח. קודם מוזגים מים.'); return; }
   g.mix.quality = doughQuality(o.mix, g.mix.flour, g.mix.water);
   g.mix.kneaded = true;
   g.busy = { kind: 'knead', left: 1200, total: 1200 };
@@ -162,8 +162,8 @@ const maxRadiusFromStock = (g: GameState) => Math.sqrt(g.stock.dough / (g.pie.co
 
 export function setRadius(g: GameState, rawCm: number) {
   if (!canAct(g) || g.station !== 'dough') return;
-  if (!g.mix.kneaded) { say(g, 'קודם צריך ללוש בצק בקערה.'); return; }
-  if (g.pie.sauce > 0) { say(g, 'הבצק כבר מרוח ברוטב — אי אפשר למתוח אותו עכשיו.'); return; }
+  if (!g.mix.kneaded) { say(g, 'קודם צריך ללוש את הבצק בקערה.'); return; }
+  if (g.pie.sauce > 0) { say(g, 'כבר יש רוטב על הבצק, אז אי אפשר למתוח אותו יותר.'); return; }
   let r = Math.max(MIN_R, Math.min(MAX_R, snapHalf(rawCm)));
   const cap = Math.floor(maxRadiusFromStock(g) * 2) / 2;
   if (r > cap) { r = cap; cue(g, 'stock_cap'); }
@@ -174,7 +174,7 @@ export function setRadius(g: GameState, rawCm: number) {
       g.pie.tore = g.mix.quality === 'wet' ? 'tear' : 'crack';
       log(g, 'dough_failed', { flour: g.mix.flour, water: g.mix.water }, g.pie.tore);
       cue(g, g.pie.tore);
-      say(g, g.pie.tore === 'tear' ? 'אוי! הבצק דביק ונקרע — יש בו יותר מדי מים ביחס לקמח.' : 'הבצק נסדק — חסרים בו מים ביחס לקמח.');
+      say(g, g.pie.tore === 'tear' ? 'אוי, הבצק נקרע! הוא דביק מדי — יש בו יותר מדי מים ביחס לקמח.' : 'הבצק נסדק! הוא יבש מדי — חסרים בו מים ביחס לקמח.');
     }
   }
   if (r === g.pie.r) return;
@@ -184,7 +184,7 @@ export function setRadius(g: GameState, rawCm: number) {
   if (!g.saidTray && r >= Math.max(t.r * 1.8, t.r + 8)) {
     g.saidTray = true;
     cue(g, 'tray');
-    say(g, 'וואו, זה כבר מגש! בטוחים שזה הגודל?');
+    say(g, 'וואו, זה כבר מגש! בדקתם את הגודל?');
   }
 }
 
@@ -209,10 +209,10 @@ export function setSauceDial(g: GameState, v: number) {
 
 export function squeeze(g: GameState) {
   if (!canAct(g) || g.station !== 'sauce') return;
-  if (g.pie.r <= 0) { say(g, 'אין על מה למרוח — קודם מותחים בצק.'); return; }
+  if (g.pie.r <= 0) { say(g, 'אין על מה למרוח. קודם מותחים בצק.'); return; }
   if (g.pie.baked) return;
-  if (g.sauceDial <= 0) { say(g, 'כוונו את החוגה לכמות הרוטב בסמ״ר.'); return; }
-  if (g.pie.squeezes >= 2) { say(g, 'הבקבוק מרשה רק תוספת אחת. אם צריך — מתחילים פיצה מחדש.'); return; }
+  if (g.sauceDial <= 0) { say(g, 'קודם בוחרים כמה סמ״ר רוטב לסחוט.'); return; }
+  if (g.pie.squeezes >= 2) { say(g, 'מותר להוסיף רוטב רק פעם אחת. אם זה עדיין לא מדויק — מתחילים פיצה חדשה.'); return; }
   const per = Math.min(g.sauceDial, g.stock.sauce / g.pie.count);
   if (per <= 0) return;
   g.stock.sauce -= per * g.pie.count;
@@ -223,8 +223,8 @@ export function squeeze(g: GameState) {
   g.busy = over ? { kind: 'cleanup', left: 2600, total: 2600 } : { kind: 'squeeze', left: 900, total: 900 };
   log(g, 'squeeze', { dial: g.sauceDial, total: g.pie.sauce, needed: round1(range.want), r: g.pie.r }, over ? 'overflow' : g.pie.sauce < range.min ? 'bare_ring' : 'covered');
   cue(g, over ? 'overflow' : 'squeeze', { total: g.pie.sauce });
-  if (over) say(g, `שיטפון! ${round1(g.pie.sauce - range.want)} סמ״ר רוטב על השיש. מנגבים…`);
-  else if (g.pie.sauce < range.min) say(g, 'נשארה טבעת בצק חשופה. אפשר להוסיף פעם אחת — כמה חסר?');
+  if (over) say(g, `שיטפון! ${round1(g.pie.sauce - range.want)} סמ״ר רוטב נשפכו על השיש. מנגבים…`);
+  else if (g.pie.sauce < range.min) say(g, 'נשארו שוליים בלי רוטב. מותר להוסיף עוד פעם אחת — כמה סמ״ר חסרים?');
   checkStock(g);
 }
 
@@ -237,8 +237,8 @@ export function setRope(g: GameState, cm: number) {
 export function cut(g: GameState) {
   if (!canAct(g) || g.station !== 'crust') return;
   if (g.pie.r <= 0) { say(g, 'קודם בצק, אחר כך קרום.'); return; }
-  if (g.pie.cheese !== null) { say(g, 'כבר יש קרום. רוצים אחר? הסירו אותו קודם.'); return; }
-  if (g.pie.rope <= 0) { say(g, 'משכו את חבל הגבינה לאורך הרצוי.'); return; }
+  if (g.pie.cheese !== null) { say(g, 'כבר יש קרום. רוצים אחר? קודם מסירים את הקיים.'); return; }
+  if (g.pie.rope <= 0) { say(g, 'קודם מושכים את חבל הגבינה לאורך שצריך.'); return; }
   g.stock.cheese = round1(g.stock.cheese - g.pie.rope);
   g.pie.cheese = g.pie.rope;
   g.pie.rope = 0;
@@ -247,8 +247,8 @@ export function cut(g: GameState) {
   const outcome = g.pie.cheese < range.min ? 'gap' : g.pie.cheese > range.max ? 'overlap' : 'sealed';
   log(g, 'cut_crust', { length: g.pie.cheese, needed: round1(range.want), r: g.pie.r }, outcome);
   cue(g, 'cut', { outcome });
-  if (outcome === 'gap') say(g, `חסר קרום! יש פער של ${round1(range.want - g.pie.cheese)} ס״מ.`);
-  if (outcome === 'overlap') say(g, 'החבל ארוך מדי — נוצר גוש כפול. חבל על הגבינה.');
+  if (outcome === 'gap') say(g, `החבל קצר מדי — נשאר חור של ${round1(range.want - g.pie.cheese)} ס״מ בקרום.`);
+  if (outcome === 'overlap') say(g, 'החבל ארוך מדי ויצא גוש כפול. חבל על הגבינה!');
   checkStock(g);
 }
 
@@ -283,7 +283,7 @@ export function bake(g: GameState) {
 
 export function serve(g: GameState) {
   if (!canAct(g)) return;
-  if (!g.pie.baked) { say(g, 'קודם לתנור, אחר כך לפעמון!'); return; }
+  if (!g.pie.baked) { say(g, 'קודם אופים, ורק אחר כך מגישים!'); return; }
   const tk = activeTicket(g);
   const v = judge(tk.def.order, { r: g.pie.r, count: g.pie.count, sauce: g.pie.sauce, cheese: g.pie.cheese, toppings: g.pie.toppings.length });
   const seconds = Math.round(tk.age / 1000);
@@ -367,15 +367,15 @@ export function hintText(g: GameState): string {
     case 'mix': return o.mix ? `{{קמח : מים = 5 : 3}} ⇐ מים = {{${g.mix.flour} × 3 ÷ 5}} גרם` : '';
     case 'dough':
       if (s.kind === 'byDiameter') return `רדיוס = קוטר ÷ 2 ⇐ {{r = ${s.d} ÷ 2}}`;
-      if (s.kind === 'byRadius') return `ההזמנה כבר נותנת רדיוס: {{r = ${s.r}}}`;
-      if (s.kind === 'minArea') return `מחפשים {{r}} קטן ככל האפשר כך ש־{{π × r² ≥ ${s.minArea}}}. נסו: {{3.14 × ${r || 10}²}}`;
+      if (s.kind === 'byRadius') return `ההזמנה כבר כתובה ברדיוס: {{r = ${s.r}}}`;
+      if (s.kind === 'minArea') return `מחפשים את ה־{{r}} הקטן ביותר שעבורו {{π × r² ≥ ${s.minArea}}}. נסו למשל: {{3.14 × ${r || 10}²}}`;
       if (s.kind === 'percentLarger') return `מקדם כיפלי לעלייה של {{${s.percent}%}}: {{1 + ${s.percent}/100}}. קוטר חדש = {{${s.baseD} × מקדם}}, ואז רדיוס = קוטר ÷ 2`;
-      return `שטח כולל = מספר פיצות × {{π × r²}}. השוו: {{1 × 3.14 × 20²}} מול {{2 × 3.14 × 14²}}`;
+      return `שטח כולל = מספר הפיצות × {{π × r²}}. השוו: {{1 × 3.14 × 20²}} מול {{2 × 3.14 × 14²}}`;
     case 'sauce':
       if (s.kind === 'percentLarger') return `כשהקוטר גדל פי {{k}}, השטח גדל פי {{k²}} (יחס שטחים). כאן {{k = 1 + ${s.percent}/100}}. או ישר: {{π × ${r || 'r'}²}}`;
       return `שטח עיגול = {{π × r²}} ⇐ {{3.14 × ${r || 'r'}²}}${g.pie.count === 2 ? ' (לכל פיצה)' : ''}`;
     case 'crust': return `היקף מעגל = {{2 × π × r}} ⇐ {{2 × 3.14 × ${r || 'r'}}}`;
-    default: return 'כמעט שם! לתנור ואז לפעמון.';
+    default: return 'כמעט סיימתם! אופים בתנור ומצלצלים בפעמון.';
   }
 }
 
@@ -421,9 +421,9 @@ export function update(g: GameState, ms: number) {
 
 function bakeComments(g: GameState) {
   const o = order(g);
-  if (o.sauce && g.pie.sauce < sauceRange(g.pie.r).min) say(g, 'הטבעת החשופה נשרפה בתנור…');
+  if (o.sauce && g.pie.sauce < sauceRange(g.pie.r).min) say(g, 'השוליים שנשארו בלי רוטב נשרפו בתנור…');
   if (o.crust && (g.pie.cheese ?? 0) < crustRange(g.pie.r).min) say(g, 'הגבינה נוזלת מהחור בקרום כמו לבה!');
-  if (!o.sauce && !o.crust) say(g, 'ריח מעולה! לפעמון.');
+  if (!o.sauce && !o.crust) say(g, 'איזה ריח! עכשיו מצלצלים בפעמון.');
 }
 
 export function restartLevel(g: GameState): GameState {

@@ -109,12 +109,12 @@ function toast(text: string) {
 
 // ---------- tutorial lines per station (levels with hints) ----------
 const STATION_TIP: Partial<Record<Station, string>> = {
-  mix: 'מזגו מים לקערה, ואז לושו. היחס קובע אם הבצק יחזיק!',
+  mix: 'מזגו מים לקערה ולושו. אם היחס לא נכון — הבצק לא יחזיק!',
   dough: 'גררו מהמרכז החוצה. הסרגל מודד רדיוס!',
-  sauce: 'כוונו כמה סמ״ר רוטב, ואז סחטו. הרוטב מכסה שטח.',
-  crust: 'משכו את חבל הגבינה לאורך הסרגל, ואז חתכו. הוא צריך להקיף את השוליים.',
-  toppings: 'תוספות לבחירה — לטעם (וקצת טיפ).',
-  oven: 'לתנור! ואז מצלצלים בפעמון.',
+  sauce: 'בחרו כמה סמ״ר רוטב לסחוט. הרוטב צריך לכסות את כל השטח.',
+  crust: 'משכו את חבל הגבינה לאורך הסרגל וחתכו. הוא צריך להקיף בדיוק את השוליים.',
+  toppings: 'תוספות הן לא חובה — אבל הן טעימות, וגם מגדילות את הטיפ.',
+  oven: 'עכשיו לתנור, ואחר כך מצלצלים בפעמון.',
 };
 const toldTip = new Set<string>();
 
@@ -208,7 +208,7 @@ function renderControl() {
   const busy = busyText();
   const next = G.route(g)[G.route(g).indexOf(g.station) + 1];
   const nextBtn = next ? `<button class="link" data-act="next">← ל${STATION_NAME[next]}</button>` : '';
-  const trash = p.r > 0 ? `<button class="link" data-act="trash">🗑 פיצה חדשה</button>` : '';
+  const trash = p.r > 0 ? `<button class="link" data-act="trash">🗑 להתחיל פיצה מחדש</button>` : '';
   let html = '';
   switch (g.station) {
     case 'mix': {
@@ -217,7 +217,7 @@ function renderControl() {
         <div class="row"><div class="readout" style="flex:1">${ICON.flour.replace('<svg', '<svg width="30" height="30"')}<bdi>${round1(g.mix.flour)}</bdi><small>גרם</small></div>
         <div class="readout" style="flex:1">${ICON.water.replace('<svg', '<svg width="30" height="30"')}<bdi>${round1(g.mix.water)}</bdi><small>גרם</small></div></div>
         <p class="hint-line">יחס קמח : מים = <bdi>${mix.ratioFlour} : ${mix.ratioWater}</bdi></p>
-        ${g.mix.kneaded ? `<p class="hint-line">${g.mix.quality === 'good' ? 'הבצק מוכן — עברו לבצק ומתחו!' : 'כדור בצק מוכן. בדקו אותו כשמותחים…'}</p><button class="big" data-act="next">← לבצק</button>` : `
+        ${g.mix.kneaded ? `<p class="hint-line">${g.mix.quality === 'good' ? 'הבצק מוכן! עברו לעמדת הבצק ומתחו אותו.' : 'כדור הבצק מוכן. נראה אם הוא מחזיק כשמותחים…'}</p><button class="big" data-act="next">← לבצק</button>` : `
         <div class="row"><b style="align-self:center">מים:</b><button class="chip" data-pour="water:100">+100</button><button class="chip" data-pour="water:10">+10</button><button class="chip" data-pour="water:1">+1</button></div>
         <div class="row"><b style="align-self:center">קמח:</b><button class="chip" data-pour="flour:100">+100</button><button class="chip" data-pour="flour:10">+10</button></div>
         <button class="big" data-act="knead" ${busy ? 'disabled' : ''}>${busy || 'לישה 🤲'}</button>`}`;
@@ -229,8 +229,8 @@ function renderControl() {
         ${deal ? `<div class="row"><button class="chip ${p.count === 1 ? 'on' : ''}" data-count="1">פיצה אחת</button><button class="chip ${p.count === 2 ? 'on' : ''}" data-count="2">שתי פיצות</button></div>` : ''}
         <div class="readout"><bdi>${p.r || '—'}</bdi><small>ס״מ</small></div>
         <div class="row steps"><button class="chip" data-r="-1">−1</button><button class="chip" data-r="-0.5">−½</button><button class="chip" data-r="0.5">+½</button><button class="chip" data-r="1">+1</button></div>
-        <p class="hint-line">${p.tore ? (p.tore === 'tear' ? 'הבצק נקרע! יותר מדי מים ביחס לקמח.' : 'הבצק נסדק! חסרים מים ביחס לקמח.') : p.sauce > 0 ? 'הבצק כבר מרוח ברוטב.' : 'גררו על הבצק מהמרכז החוצה (או ← →).'}</p>
-        ${p.tore ? '<button class="big gold" data-act="bowl">חזרה לקערה 🥣</button>' : next ? `<button class="big" data-act="next" ${p.r ? '' : 'disabled'}>← ל${STATION_NAME[next]}</button>` : ''}
+        <p class="hint-line">${p.tore ? (p.tore === 'tear' ? 'הבצק נקרע! יותר מדי מים ביחס לקמח.' : 'הבצק נסדק! חסרים מים ביחס לקמח.') : p.sauce > 0 ? 'כבר יש רוטב על הבצק.' : 'גררו על הבצק מהמרכז החוצה (או ← →).'}</p>
+        ${p.tore ? '<button class="big gold" data-act="bowl">חזרה לקערה לתקן 🥣</button>' : next ? `<button class="big" data-act="next" ${p.r ? '' : 'disabled'}>← ל${STATION_NAME[next]}</button>` : ''}
         <div class="links">${trash}</div>`;
       break;
     }
@@ -247,21 +247,21 @@ function renderControl() {
       html = `<h3>חבל גבינה</h3>
         <div class="readout"><bdi>${p.cheese !== null ? p.cheese : p.rope}</bdi><small>ס״מ</small></div>
         ${p.cheese === null ? `<div class="row steps"><button class="chip" data-rope="-5">−5</button><button class="chip" data-rope="-0.5">−½</button><button class="chip" data-rope="0.5">+½</button><button class="chip" data-rope="5">+5</button></div>
-        <p class="hint-line">גררו לאורך הסרגל הצהוב כדי למשוך גבינה.</p>
-        <button class="big gold" data-act="cut" ${busy || !p.rope ? 'disabled' : ''}>${busy || 'חיתוך ✂️'}</button>` : `<p class="hint-line">הקרום על הפיצה.</p><button class="link" data-act="uncrust">להסיר קרום (הגבינה תתבזבז)</button>`}
+        <p class="hint-line">גררו לאורך סרגל המדידה כדי למשוך גבינה.</p>
+        <button class="big gold" data-act="cut" ${busy || !p.rope ? 'disabled' : ''}>${busy || 'חיתוך ✂️'}</button>` : `<p class="hint-line">הקרום כבר על הפיצה.</p><button class="link" data-act="uncrust">להסיר קרום (הגבינה תתבזבז)</button>`}
         <div class="links">${trash}${nextBtn}</div>`;
       break;
     }
     case 'toppings': {
       html = `<h3>תוספות <small style="font-size:14px">(לבחירה)</small></h3>
         <div class="row">${(Object.keys(TOPPING_NAME) as (keyof typeof TOPPING_NAME)[]).map((k) => `<button class="chip" data-top="${k}">${TOPPING_NAME[k]}</button>`).join('')}</div>
-        <p class="hint-line">אפשר גם ללחוץ על הצנצנות. על הפיצה: <bdi>${p.toppings.length}</bdi></p>
+        <p class="hint-line">אפשר ללחוץ גם על הצנצנות. תוספות על הפיצה: <bdi>${p.toppings.length}</bdi></p>
         <div class="links">${trash}${nextBtn}</div>`;
       break;
     }
     case 'oven': {
       html = `<h3>תנור עצים</h3>
-        ${p.baked ? '<p class="hint-line">הפיצה אפויה! צלצלו בפעמון כדי להגיש.</p><button class="big gold" data-act="serve">🔔 הגשה!</button>' : `<p class="hint-line">${p.r ? 'הכול מוכן? שולחים לתנור.' : 'אין עדיין פיצה.'}</p><button class="big red" data-act="bake" ${busy || !p.r ? 'disabled' : ''}>${busy || 'לתנור 🔥'}</button>`}
+        ${p.baked ? '<p class="hint-line">הפיצה אפויה! צלצלו בפעמון כדי להגיש.</p><button class="big gold" data-act="serve">🔔 הגשה!</button>' : `<p class="hint-line">${p.r ? 'הכול מוכן? שולחים לתנור.' : 'עוד אין פיצה.'}</p><button class="big red" data-act="bake" ${busy || !p.r ? 'disabled' : ''}>${busy || 'לתנור 🔥'}</button>`}
         <div class="links">${p.baked ? '' : trash}</div>`;
       break;
     }
@@ -313,17 +313,17 @@ const stars = (k: number) => `<div class="stars">${[1, 2, 3].map((i) => `<span c
 function showTitle() {
   showOverlay(`<div class="title"><div class="mark">פיצה<span class="pi">π</span></div></div>
     <p>משמרת לילה בפיצרייה של פפה. מותחים בצק לפי <b>רדיוס</b>, מורחים רוטב לפי <b>שטח</b>, ועוטפים קרום לפי <b>היקף</b>. טעות בחישוב? רואים אותה על הפיצה.</p>
-    <button class="big" data-act="play">שחקו ▶</button>
+    <button class="big" data-act="play">בואו נתחיל!</button>
     <div class="levels">${LEVELS.map((l, i) => `<button data-level="${i}" ${i > save.unlocked ? 'disabled' : ''}><b>${i + 1}. ${l.title}</b>${l.topic} ${save.stars[i] ? '★'.repeat(save.stars[i]) : ''}</button>`).join('')}</div>
     <div class="toggles"><button class="chip ${scene.reducedMotion ? 'on' : ''}" data-act="motion">פחות תנועה</button><button class="chip ${sound.muted ? '' : 'on'}" data-act="sound">קול</button></div>
-    <p style="font-size:13px;opacity:.7">עכבר/מגע: גוררים ולוחצים · מקלדת: 1–6 עמדות, ← → כיוון, Enter פעולה, H מחברת, C מחשבון, P השהיה</p>`);
+    <p style="font-size:13px;opacity:.7">עכבר או מגע: גוררים ולוחצים · מקלדת: 1–6 מעבר בין עמדות, ← → שינוי ערך, Enter פעולה, H מחברת, C מחשבון, P הפסקה</p>`);
 }
 
 function showIntro() {
   const L = g.level;
   showOverlay(`<span class="topic">${L.topic}</span><h2>שלב ${g.levelIndex + 1}: ${L.title}</h2>
     <p>${fmtText(L.intro)}</p>
-    ${L.shiftSeconds ? `<p><b>⏱ <bdi>${L.shiftSeconds}</bdi> שניות · בלי מחברת</b></p>` : ''}
+    ${L.shiftSeconds ? `<p><b>⏱ <bdi>${L.shiftSeconds}</bdi> שניות · בלי המחברת של השף</b></p>` : ''}
     <button class="big" data-act="start">יאללה, לעבודה!</button>`);
 }
 
@@ -331,29 +331,29 @@ function explain(r: Reason): string {
   const v = r.values;
   const o = G.activeTicket(g).def.order;
   switch (r.code) {
-    case 'used_diameter_as_radius': return `ההזמנה: קוטר <bdi>${v.want_r * 2}</bdi> ס״מ. מתחתם רדיוס <bdi>${v.got_r}</bdi> — זה קוטר <bdi>${v.got_r * 2}</bdi>! קוטר = 2 × רדיוס, ולכן <bdi>r = ${v.want_r * 2} ÷ 2 = ${v.want_r}</bdi>.`;
-    case 'used_radius_as_diameter': return `ההזמנה: רדיוס <bdi>${v.want_r}</bdi>. הפיצה ברדיוס <bdi>${v.got_r}</bdi>, כלומר קוטר <bdi>${v.got_r * 2}</bdi> בלבד. הסרגל כבר מודד רדיוס — אין צורך לחלק ב־2.`;
-    case 'dough_too_big': case 'dough_too_small': case 'dough_radius_wrong': return `הרדיוס היה <bdi>${v.got_r}</bdi> ס״מ, וצריך <bdi>${v.want_r}</bdi> ס״מ.`;
-    case 'forgot_to_enlarge': { const s = o.dough as { baseD: number; percent: number }; return `זו בדיוק הפיצה הרגילה. קוטר חדש = <bdi>${s.baseD} × ${1 + s.percent / 100} = ${round1(s.baseD * (1 + s.percent / 100))}</bdi>, כלומר רדיוס <bdi>${v.want_r}</bdi>.`; }
-    case 'area_short_by_cm2': return `<bdi>π × r² ≈ ${v.got_cm2}</bdi> סמ״ר, אבל צריך לפחות <bdi>${v.need_cm2}</bdi>. חסרו <bdi>${v.short_by_cm2}</bdi> סמ״ר — והילדים רבים על המשולש האחרון!`;
-    case 'dough_wasted_cm2': return `כולם שבעים, אבל גם רדיוס קטן יותר היה מספיק (<bdi>${v.best_cm2}</bdi> סמ״ר). בזבזתם <bdi>${v.wasted_cm2}</bdi> סמ״ר בצק.`;
-    case 'deal_less_pizza_by_cm2': return `שתי פיצות בקוטר 28: <bdi>2 × π × 14² ≈ ${v.got_cm2}</bdi>. פיצה אחת בקוטר 40: <bdi>π × 20² ≈ ${v.best_cm2}</bdi>. הגדולה מנצחת ב־<bdi>${v.less_by_cm2}</bdi> סמ״ר! כשהקוטר גדל, השטח גדל בריבוע.`;
-    case 'sauce_short_by_cm2': return `מרחתם <bdi>${v.got_cm2}</bdi> סמ״ר, אבל שטח הפיצה הוא <bdi>π × r² ≈ ${v.want_cm2}</bdi>. חסרו <bdi>${v.short_by_cm2}</bdi> סמ״ר, והטבעת החשופה נשרפה.`;
-    case 'sauce_used_circumference': return `<bdi>${v.got_cm2}</bdi> זה בערך ההיקף (<bdi>2πr</bdi>), לא השטח. רוטב מכסה שטח: <bdi>π × r² ≈ ${v.want_cm2}</bdi> סמ״ר.`;
-    case 'sauce_scaled_linearly': return `הגדלתם את הרוטב פי <bdi>${v.factor_used}</bdi>, כמו הקוטר. אבל כשהקוטר גדל פי <bdi>k</bdi>, השטח גדל פי <bdi>k²</bdi>: <bdi>${v.factor_used}² = ${v.factor_needed}</bdi>, כלומר בערך <bdi>${v.want_cm2}</bdi> סמ״ר.`;
-    case 'sauce_over_by_cm2': return `<bdi>${v.over_by_cm2}</bdi> סמ״ר רוטב עודף נשפכו על השיש וביזבזו מלאי וזמן.`;
-    case 'crust_gap_cm': return `החבל היה <bdi>${v.got_cm}</bdi> ס״מ, אבל ההיקף הוא <bdi>2 × π × r ≈ ${v.want_cm}</bdi>. נשאר חור של <bdi>${v.gap_cm}</bdi> ס״מ — והגבינה ברחה בתנור!`;
-    case 'crust_used_pi_r': return `<bdi>${v.got_cm}</bdi> זה רק <bdi>π × r</bdi> — חצי מההיקף. היקף = <bdi>2 × π × r ≈ ${v.want_cm}</bdi> ס״מ.`;
-    case 'crust_used_area': return `<bdi>${v.got_cm}</bdi> זה השטח (<bdi>πr²</bdi>), לא ההיקף. היקף = <bdi>2 × π × r ≈ ${v.want_cm}</bdi> ס״מ.`;
-    case 'crust_overlap_cm': return `<bdi>${v.overlap_cm}</bdi> ס״מ גבינה מיותרת יצרו גוש כפול.`;
+    case 'used_diameter_as_radius': return `הוזמנה פיצה בקוטר <bdi>${v.want_r * 2}</bdi> ס״מ, אבל מתחתם עד רדיוס <bdi>${v.got_r}</bdi> — כלומר קוטר <bdi>${v.got_r * 2}</bdi>! הרדיוס הוא חצי מהקוטר: <bdi>r = ${v.want_r * 2} ÷ 2 = ${v.want_r}</bdi>.`;
+    case 'used_radius_as_diameter': return `ביקשו רדיוס <bdi>${v.want_r}</bdi>, אבל מתחתם רק עד רדיוס <bdi>${v.got_r}</bdi> — זה קוטר של <bdi>${v.got_r * 2}</bdi> בלבד. הסרגל כבר מודד רדיוס, אז לא צריך לחלק ב־2.`;
+    case 'dough_too_big': case 'dough_too_small': case 'dough_radius_wrong': return `מתחתם עד רדיוס <bdi>${v.got_r}</bdi> ס״מ, אבל צריך רדיוס <bdi>${v.want_r}</bdi> ס״מ.`;
+    case 'forgot_to_enlarge': { const s = o.dough as { baseD: number; percent: number }; return `זאת בדיוק הפיצה הרגילה, בלי הגדלה. הקוטר החדש: <bdi>${s.baseD} × ${1 + s.percent / 100} = ${round1(s.baseD * (1 + s.percent / 100))}</bdi>, ולכן הרדיוס הוא <bdi>${v.want_r}</bdi>.`; }
+    case 'area_short_by_cm2': return `השטח יצא <bdi>π × r² ≈ ${v.got_cm2}</bdi> סמ״ר, אבל צריך לפחות <bdi>${v.need_cm2}</bdi>. חסרים <bdi>${v.short_by_cm2}</bdi> סמ״ר, ולא כל ילד מקבל את החלק שלו.`;
+    case 'dough_wasted_cm2': return `כולם שבעים, אבל גם פיצה קטנה יותר, של <bdi>${v.best_cm2}</bdi> סמ״ר, הייתה מספיקה. בזבזתם <bdi>${v.wasted_cm2}</bdi> סמ״ר בצק.`;
+    case 'deal_less_pizza_by_cm2': return `שתי פיצות בקוטר 28 נותנות <bdi>2 × π × 14² ≈ ${v.got_cm2}</bdi> סמ״ר. פיצה אחת בקוטר 40 נותנת <bdi>π × 20² ≈ ${v.best_cm2}</bdi> סמ״ר — יותר ב־<bdi>${v.less_by_cm2}</bdi> סמ״ר! השטח תלוי ברדיוס בריבוע, ולכן פיצה גדולה אחת שווה יותר ממה שנראה.`;
+    case 'sauce_short_by_cm2': return `מרחתם <bdi>${v.got_cm2}</bdi> סמ״ר רוטב, אבל שטח הפיצה הוא <bdi>π × r² ≈ ${v.want_cm2}</bdi> סמ״ר. חסרו <bdi>${v.short_by_cm2}</bdi> סמ״ר, והשוליים החשופים נשרפו בתנור.`;
+    case 'sauce_used_circumference': return `<bdi>${v.got_cm2}</bdi> הוא בערך ההיקף (<bdi>2πr</bdi>), לא השטח. רוטב מכסה שטח, ולכן צריך <bdi>π × r² ≈ ${v.want_cm2}</bdi> סמ״ר.`;
+    case 'sauce_scaled_linearly': return `הגדלתם את הרוטב פי <bdi>${v.factor_used}</bdi>, כמו את הקוטר. אבל כשהקוטר גדל פי <bdi>k</bdi>, השטח גדל פי <bdi>k²</bdi>: <bdi>${v.factor_used}² = ${v.factor_needed}</bdi>. כלומר צריך בערך <bdi>${v.want_cm2}</bdi> סמ״ר.`;
+    case 'sauce_over_by_cm2': return `נשפכו <bdi>${v.over_by_cm2}</bdi> סמ״ר רוטב מיותר על השיש — חבל על הרוטב ועל הזמן.`;
+    case 'crust_gap_cm': return `חבל הגבינה היה <bdi>${v.got_cm}</bdi> ס״מ, אבל היקף הפיצה הוא <bdi>2 × π × r ≈ ${v.want_cm}</bdi> ס״מ. נשאר חור של <bdi>${v.gap_cm}</bdi> ס״מ, ובתנור הגבינה נזלה ממנו.`;
+    case 'crust_used_pi_r': return `<bdi>${v.got_cm}</bdi> זה רק <bdi>π × r</bdi> — חצי מההיקף. ההיקף המלא הוא <bdi>2 × π × r ≈ ${v.want_cm}</bdi> ס״מ.`;
+    case 'crust_used_area': return `<bdi>${v.got_cm}</bdi> זה השטח (<bdi>πr²</bdi>), לא ההיקף. לקרום צריך היקף: <bdi>2 × π × r ≈ ${v.want_cm}</bdi> ס״מ.`;
+    case 'crust_overlap_cm': return `החבל היה ארוך ב־<bdi>${v.overlap_cm}</bdi> ס״מ, והעודף יצר גוש כפול של גבינה.`;
     default: return r.code;
   }
 }
 const REACTION: Record<string, string> = {
-  used_diameter_as_radius: 'זה מגש, לא פיצה! 😳', used_radius_as_diameter: 'פיצה לבובות? 🤏', dough_too_big: 'ענקית מדי!', dough_too_small: 'קטנטונת!',
-  forgot_to_enlarge: 'היי, זו בדיוק הרגילה!', area_short_by_cm2: 'אנחנו רבים על המשולש האחרון! 😤', deal_less_pizza_by_cm2: 'רגע… זה פחות פיצה!', dough_radius_wrong: 'זה לא הגודל מהעסקה.',
-  sauce_short_by_cm2: 'הקצוות שרופים! 🔥', sauce_used_circumference: 'הקצוות שרופים! 🔥', sauce_scaled_linearly: 'הרוטב לא מגיע לקצה!',
-  crust_gap_cm: 'הגבינה ברחה מהחור! 🧀', crust_used_pi_r: 'חצי קרום?!', crust_used_area: 'הגבינה ברחה מהחור! 🧀',
+  used_diameter_as_radius: 'זה מגש, לא פיצה! 😳', used_radius_as_diameter: 'זאת פיצה לבובות? 🤏', dough_too_big: 'היא ענקית! הזמנתי קטנה יותר.', dough_too_small: 'זה הכול? היא קטנה מדי!',
+  forgot_to_enlarge: 'רגע, זאת בדיוק הרגילה שלי!', area_short_by_cm2: 'אין מספיק לכולנו! 😤', deal_less_pizza_by_cm2: 'רגע… יצא לנו פחות פיצה!', dough_radius_wrong: 'זה לא הגודל שסיכמנו.',
+  sauce_short_by_cm2: 'השוליים שרופים! 🔥', sauce_used_circumference: 'השוליים שרופים! 🔥', sauce_scaled_linearly: 'הרוטב לא מגיע עד הסוף!',
+  crust_gap_cm: 'הגבינה נזלה מהחור בקרום! 🧀', crust_used_pi_r: 'רק חצי קרום?!', crust_used_area: 'הגבינה נזלה מהחור בקרום! 🧀',
 };
 
 function showResult() {
@@ -362,20 +362,20 @@ function showResult() {
   const tk = g.tickets.find((t) => t.def.id === res.ticketId)!;
   const who = CUSTOMER_NAME[tk.def.customer];
   const main = v.reasons.find((r) => r.severity === 'fail') ?? v.reasons[0];
-  const reaction = v.outcome === 'perfect' ? 'מושלם!!! 🤩' : v.outcome === 'ok' ? 'טעים! אבל…' : REACTION[main.code] ?? 'אממ… לא בדיוק.';
+  const reaction = v.outcome === 'perfect' ? 'מושלם!!! 🤩' : v.outcome === 'ok' ? 'טעים! רק דבר אחד…' : REACTION[main.code] ?? 'הממ… זה לא מה שהזמנתי.';
   const deal = G.activeTicket(g).def.order.dough.kind === 'bestDeal' ? dealScale(res.pie.count, res.pie.r) : '';
   const facts: string[] = [];
   if (v.want.sauce) facts.push(`🍅 רוטב <bdi>${round1(res.pie.sauce)}</bdi> מתוך <bdi>≈ ${round1(v.want.sauce.want)}</bdi> סמ״ר`);
   if (v.want.crust) facts.push(`🧀 קרום <bdi>${res.pie.cheese ?? 0}</bdi> מתוך <bdi>≈ ${round1(v.want.crust.want)}</bdi> ס״מ`);
   showOverlay(`<div class="scroll ${v.outcome}">
-    <div class="who">♥ ${who} ♥</div>
+    <div class="who">${v.outcome === 'fail' ? who : `♥ ${who} ♥`}</div>
     <div class="reaction">${reaction}</div>
     ${stars(v.stars)}
     ${deal}
     ${v.outcome === 'perfect' ? facts.map((f) => `<div class="fact">${f} <span class="ok">✓</span></div>`).join('') : ''}
     ${v.reasons.length ? `<div class="explain"><ul>${v.reasons.map((r) => `<li>${explain(r)}</li>`).join('')}</ul></div>` : ''}
-    ${v.outcome !== 'fail' ? `<div class="tips">${COIN}${COIN} טיפ: <bdi>+${res.tips}</bdi> <small>· <bdi>${res.seconds}</bdi> שניות</small></div>` : '<p>אין נורא — מכינים שוב! ההזמנה עדיין פתוחה.</p>'}
-    <button class="big" data-act="continue">${v.outcome === 'fail' ? 'ננסה שוב ↻' : 'המשך ◀'}</button></div>`, 'result');
+    ${v.outcome !== 'fail' ? `<div class="tips">${COIN}${COIN} טיפ: <bdi>+${res.tips}</bdi> <small>· הוכן ב־<bdi>${res.seconds}</bdi> שניות</small></div>` : `<p>לא נורא, זה קורה! ${who} ${tk.def.customer === 'kids' ? 'עדיין מחכים' : 'עדיין מחכה'} — בואו נכין פיצה חדשה.</p>`}
+    <button class="big" data-act="continue">${v.outcome === 'fail' ? 'מכינים פיצה חדשה ↻' : 'המשך'}</button></div>`, 'result');
   if (v.outcome !== 'fail') sound.coin(Math.ceil(res.tips / 3));
 }
 
@@ -397,7 +397,7 @@ function dealScale(count: number, r: number) {
     <g transform="rotate(${tilt} 160 34)"><rect x="70" y="30" width="180" height="8" rx="4" fill="#8a5a3a"/></g>
     ${pan(255, 'אחת בקוטר 40', one, [20], count === 1)}
     ${pan(65, 'שתיים בקוטר 28', two, [14, 14], count === 2)}
-  </svg><div class="hint-line">בחרתם רדיוס <bdi>${r}</bdi></div>`;
+  </svg><div class="hint-line">בחרתם: ${count === 1 ? 'פיצה אחת' : 'שתי פיצות'} ברדיוס <bdi>${r}</bdi></div>`;
 }
 
 function showLevelDone() {
@@ -406,19 +406,19 @@ function showLevelDone() {
   writeSave();
   const last = g.phase === 'finished';
   showOverlay(`<h2>${last ? 'סוף המשמרת! 🎉' : 'שלב הושלם!'}</h2>${stars(st)}
-    <p>טיפים במשמרת: <bdi>${g.tipsTotal}</bdi> ${COIN} · רמזים: <bdi>${g.hintsUsed}</bdi></p>
-    ${last ? `<p>שרדתם את שעת העומס בלי המחברת של השף. רדיוס, קוטר, שטח, היקף, אחוזים ויחס — הכול עבד על פיצות אמיתיות.</p>
+    <p>טיפים: <bdi>${g.tipsTotal}</bdi> ${COIN} · פתחתם את המחברת <bdi>${g.hintsUsed}</bdi> פעמים</p>
+    ${last ? `<p>עברתם את שעת העומס בלי המחברת של השף! רדיוס, קוטר, שטח, היקף, אחוזים ויחס — השתמשתם בכולם על פיצות אמיתיות.</p>
       <div class="levels">${LEVELS.map((l, i) => `<button data-level="${i}"><b>${i + 1}. ${l.title}</b>${'★'.repeat(save.stars[i] ?? 0) || '—'}</button>`).join('')}</div>` : ''}
     <button class="big" data-act="${last ? 'menu' : 'nextlevel'}">${last ? 'לתפריט' : 'לשלב הבא ←'}</button>
-    ${last ? '' : '<button class="link" data-act="restart">לשחק שוב את השלב</button>'}`);
+    ${last ? '' : '<button class="link" data-act="restart">לשחק את השלב שוב</button>'}`);
 }
 
 function showShiftOver() {
   const what = g.shortOf === 'time' ? 'נגמר הזמן' : g.shortOf === 'dough' ? 'נגמר הבצק' : g.shortOf === 'sauce' ? 'נגמר הרוטב' : 'נגמרה הגבינה';
   const served = g.tickets.filter((t) => t.done).length;
   showOverlay(`<h2>${what}!</h2>
-    <p>הגשתם <bdi>${served}</bdi> מתוך <bdi>${g.tickets.length}</bdi> הזמנות. פפה אומר: “כל טבח שורף כמה פיצות בדרך. מחר בערב שוב!”</p>
-    <p class="hint-line">טיפ: כל טעות מבזבזת מלאי. חשבו לפני שסוחטים.</p>
+    <p>הגשתם <bdi>${served}</bdi> מתוך <bdi>${g.tickets.length}</bdi> הזמנות. פפה אומר: „כל שף שרף כמה פיצות בדרך. ננסה שוב!”</p>
+    <p class="hint-line">עצה: כל טעות מבזבזת חומרים מהמלאי, אז כדאי לחשב לפני שסוחטים וחותכים.</p>
     <button class="big" data-act="restart">משמרת חדשה ↻</button>`);
 }
 
@@ -469,8 +469,8 @@ function togglePause() {
   if (g.phase !== 'playing' && !g.paused) return;
   g.paused = !g.paused;
   $('#btn-pause').setAttribute('aria-pressed', String(g.paused));
-  if (g.paused) showOverlay(`<h2>הפסקה ☕</h2><p>הפיצה מחכה.</p><button class="big" data-act-pause="1">המשך</button>
-    <div class="toggles"><button class="chip" data-act="restart">התחלת השלב מחדש</button><button class="chip" data-act="menu">תפריט</button><button class="chip ${scene.reducedMotion ? 'on' : ''}" data-act="motion">פחות תנועה</button></div>`);
+  if (g.paused) showOverlay(`<h2>הפסקה ☕</h2><p>הפיצה תחכה לכם.</p><button class="big" data-act-pause="1">המשך</button>
+    <div class="toggles"><button class="chip" data-act="restart">להתחיל את השלב מחדש</button><button class="chip" data-act="menu">תפריט</button><button class="chip ${scene.reducedMotion ? 'on' : ''}" data-act="motion">פחות תנועה</button></div>`);
   else { hideOverlay(); shownPhase = ''; }
 }
 
@@ -620,7 +620,7 @@ function consumeCues() {
     }
     if (c.kind === 'tray') toast('מגש?! 😳');
     if (c.kind === 'serve' && c.values?.outcome === 'perfect') toast('מושלם! ⭐⭐⭐');
-    if (c.kind === 'cut' && c.values?.outcome === 'sealed') toast('נסגר בדיוק! 🧀');
+    if (c.kind === 'cut' && c.values?.outcome === 'sealed') toast('הקרום נסגר בדיוק! 🧀');
   }
   if (g.cues.length) { writeEvents(); renderHud(true); }
   g.cues.length = 0;
@@ -635,7 +635,7 @@ function updateTag() {
     const o = G.activeTicket(g).def.order;
     if (g.station === 'sauce' && p.sauce > 0) {
       const s = sauceRange(p.r);
-      if (p.sauce < s.min) text = 'טבעת חשופה!'; else if (p.sauce > s.max) text = 'שיטפון!'; else { text = 'מכוסה ✓'; ok = true; }
+      if (p.sauce < s.min) text = 'שוליים חשופים!'; else if (p.sauce > s.max) text = 'שיטפון!'; else { text = 'מכוסה ✓'; ok = true; }
     } else if (g.station === 'crust' && p.cheese !== null && o.crust) {
       const c = crustRange(p.r);
       if (p.cheese < c.min) text = 'חור בקרום!'; else if (p.cheese > c.max) text = 'גוש כפול'; else { text = 'סגור ✓'; ok = true; }
