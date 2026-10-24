@@ -121,7 +121,9 @@ const toldTip = new Set<string>();
 let lastHudKey = '';
 function renderHud(force = false) {
   const tk = G.activeTicket(g);
-  const key = JSON.stringify([g.phase, g.station, g.active, g.tickets.map((t) => t.done), g.pie, g.sauceDial, g.mix, g.busy?.kind, Math.ceil((g.shiftLeft ?? 0) / 1000), Math.floor((tk?.age ?? 0) / 1000), g.stock, g.levelIndex, notebookOpen]);
+  void tk;
+  const key = JSON.stringify([g.phase, g.station, g.active, g.tickets.map((t) => [t.done, t.attempts]), g.pie, g.sauceDial, g.mix, g.busy?.kind, g.stock, g.levelIndex, notebookOpen, sound.muted]);
+  updateLive();
   if (!force && key === lastHudKey) return;
   lastHudKey = key;
   $('#level-name').textContent = `${g.levelIndex + 1} · ${g.level.title}`;
@@ -135,16 +137,30 @@ function renderHud(force = false) {
   renderNotebook();
 }
 
+/** Timers change every frame: update them in place so buttons are never rebuilt mid-click. */
+function updateLive() {
+  document.querySelectorAll<HTMLElement>('#tickets [data-bar]').forEach((b) => {
+    const t = g.tickets[Number(b.dataset.bar)];
+    if (t) b.style.width = `${Math.max(0, 1 - t.age / 90000) * 100}%`;
+  });
+  const c = document.querySelector<HTMLElement>('#tickets .clock');
+  if (c && g.shiftLeft !== null) {
+    const sec = Math.ceil(g.shiftLeft / 1000);
+    c.innerHTML = `⏱ <bdi>${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}</bdi>`;
+    c.classList.toggle('low', g.shiftLeft < 30000);
+  }
+}
+
 function renderTickets() {
   const el = $('#tickets');
   el.classList.toggle('many', g.tickets.length > 1);
-  const clock = g.shiftLeft !== null ? `<div class="clock ${g.shiftLeft < 30000 ? 'low' : ''}">⏱ <bdi>${Math.floor(g.shiftLeft / 60000)}:${String(Math.ceil((g.shiftLeft % 60000) / 1000) % 60).padStart(2, '0')}</bdi></div>` : '';
+  const clock = g.shiftLeft !== null ? `<div class="clock"></div>` : '';
   el.innerHTML = g.tickets.map((t, i) => {
     const patience = Math.max(0, 1 - t.age / 90000);
     return `<button class="ticket ${i === g.active ? 'active' : ''} ${t.done ? 'done' : ''}" data-ticket="${i}" aria-label="הזמנה ${i + 1}">
       <div class="who">${CUSTOMER_NAME[t.def.customer]}${t.attempts ? ` · ניסיון ${t.attempts + 1}` : ''}</div>
       <div class="order">${fmtText(t.def.text)}</div>
-      <div class="patience"><span>סבלנות הלקוח:</span><div class="bar"><i style="width:${patience * 100}%"></i></div></div>
+      <div class="patience"><span>סבלנות הלקוח:</span><div class="bar"><i data-bar="${i}" style="width:${patience * 100}%"></i></div></div>
     </button>`;
   }).join('') + (clock ? `<div style="position:absolute;top:100%;left:50%;transform:translate(-50%,8px)">${clock}</div>` : '');
 }
@@ -209,7 +225,7 @@ function renderControl() {
       html = `<h3>רדיוס</h3>
         ${deal ? `<div class="row"><button class="chip ${p.count === 1 ? 'on' : ''}" data-count="1">פיצה אחת</button><button class="chip ${p.count === 2 ? 'on' : ''}" data-count="2">שתי פיצות</button></div>` : ''}
         <div class="readout"><bdi>${p.r || '—'}</bdi><small>ס״מ</small></div>
-        <div class="row"><button class="chip" data-r="-1">−1</button><button class="chip" data-r="-0.5">−½</button><button class="chip" data-r="0.5">+½</button><button class="chip" data-r="1">+1</button></div>
+        <div class="row steps"><button class="chip" data-r="-1">−1</button><button class="chip" data-r="-0.5">−½</button><button class="chip" data-r="0.5">+½</button><button class="chip" data-r="1">+1</button></div>
         <p class="hint-line">${p.tore ? (p.tore === 'tear' ? 'הבצק נקרע! יותר מדי מים ביחס לקמח.' : 'הבצק נסדק! חסרים מים ביחס לקמח.') : p.sauce > 0 ? 'הבצק כבר מרוח ברוטב.' : 'גררו על הבצק מהמרכז החוצה (או ← →).'}</p>
         ${p.tore ? '<button class="big gold" data-act="bowl">חזרה לקערה 🥣</button>' : next ? `<button class="big" data-act="next" ${p.r ? '' : 'disabled'}>← ל${STATION_NAME[next]}</button>` : ''}
         <div class="links">${trash}</div>`;
@@ -217,17 +233,17 @@ function renderControl() {
     }
     case 'sauce': {
       html = `<h3>רוטב</h3>
-        <div class="readout"><input class="dial-input" id="dial" type="number" inputmode="decimal" min="0" max="3000" value="${g.sauceDial}" aria-label="כמות רוטב בסמ״ר"><small>סמ״ר</small></div>
-        <div class="row"><button class="chip" data-dial="-100">−100</button><button class="chip" data-dial="-10">−10</button><button class="chip" data-dial="-1">−1</button><button class="chip" data-dial="1">+1</button><button class="chip" data-dial="10">+10</button><button class="chip" data-dial="100">+100</button></div>
+        ${gauge(g.sauceDial)}
+        <div class="row steps"><button class="chip" data-dial="-100">−100</button><button class="chip" data-dial="-10">−10</button><button class="chip" data-dial="-1">−1</button><button class="chip" data-dial="1">+1</button><button class="chip" data-dial="10">+10</button><button class="chip" data-dial="100">+100</button></div>
         <p class="hint-line">על הפיצה: <bdi>${round1(p.sauce)}</bdi> סמ״ר${p.count === 2 ? ' (בכל אחת)' : ''} · סחיטות: <bdi>${p.squeezes}/2</bdi></p>
-        <button class="big red" data-act="squeeze" ${busy || p.squeezes >= 2 || !p.r ? 'disabled' : ''}>${busy || 'סחיטה!'}</button>
+        <button class="big" data-act="squeeze" ${busy || p.squeezes >= 2 || !p.r ? 'disabled' : ''}>${busy || 'סחיטה 💦'}</button>
         <div class="links">${trash}${nextBtn}</div>`;
       break;
     }
     case 'crust': {
       html = `<h3>חבל גבינה</h3>
         <div class="readout"><bdi>${p.cheese !== null ? p.cheese : p.rope}</bdi><small>ס״מ</small></div>
-        ${p.cheese === null ? `<div class="row"><button class="chip" data-rope="-5">−5</button><button class="chip" data-rope="-0.5">−½</button><button class="chip" data-rope="0.5">+½</button><button class="chip" data-rope="5">+5</button></div>
+        ${p.cheese === null ? `<div class="row steps"><button class="chip" data-rope="-5">−5</button><button class="chip" data-rope="-0.5">−½</button><button class="chip" data-rope="0.5">+½</button><button class="chip" data-rope="5">+5</button></div>
         <p class="hint-line">גררו לאורך הסרגל הצהוב כדי למשוך גבינה.</p>
         <button class="big gold" data-act="cut" ${busy || !p.rope ? 'disabled' : ''}>${busy || 'חיתוך ✂️'}</button>` : `<p class="hint-line">הקרום על הפיצה.</p><button class="link" data-act="uncrust">להסיר קרום (הגבינה תתבזבז)</button>`}
         <div class="links">${trash}${nextBtn}</div>`;
@@ -252,6 +268,20 @@ function renderControl() {
   if (dial) dial.addEventListener('change', () => { G.setSauceDial(g, Number(dial.value)); renderHud(true); });
 }
 
+/** Semicircle sauce gauge (design/mockups/02): needle over 0–1600 cm², the number is typed or stepped. */
+function gauge(v: number) {
+  const max = 1600, cx = 100, cy = 100, r = 78;
+  const seg = (a0: number, a1: number, color: string) => {
+    const p = (a: number) => `${cx + Math.cos(Math.PI * (1 - a)) * r},${cy - Math.sin(Math.PI * (1 - a)) * r}`;
+    return `<path d="M${p(a0)} A${r},${r} 0 0 1 ${p(a1)}" stroke="${color}" stroke-width="18" fill="none"/>`;
+  };
+  const colors = ['#ffe08a', '#f6c15a', '#f19a3e', '#e06a2e', '#c8311f'];
+  const ang = -90 + 180 * Math.min(1, v / max);
+  return `<div class="gauge"><svg viewBox="0 0 200 112" aria-hidden="true">${colors.map((c, i) => seg(i / 5 + 0.005, (i + 1) / 5 - 0.005, c)).join('')}
+    <g transform="rotate(${ang} ${cx} ${cy})"><path d="M${cx - 5},${cy} L${cx},${cy - 70} L${cx + 5},${cy} z" fill="#3a2214"/></g><circle cx="${cx}" cy="${cy}" r="9" fill="#3a2214"/></svg>
+    <div class="gauge-val"><input class="dial-input" id="dial" type="number" inputmode="decimal" min="0" max="3000" value="${v}" aria-label="כמות רוטב בסמ״ר"><small>סמ״ר</small></div></div>`;
+}
+
 let notebookOpen = false;
 function renderNotebook() {
   const el = $('#notebook');
@@ -261,7 +291,7 @@ function renderNotebook() {
 }
 
 // ---------- overlays ----------
-function showOverlay(html: string) { $('#sheet').innerHTML = html; $('#overlay').classList.remove('hidden'); }
+function showOverlay(html: string, kind = '') { $('#sheet').innerHTML = html; $('#sheet').className = `sheet ${kind}`; $('#overlay').classList.remove('hidden'); }
 function hideOverlay() { $('#overlay').classList.add('hidden'); }
 const stars = (k: number) => `<div class="stars">${[1, 2, 3].map((i) => `<span class="${i <= k ? '' : 'off'}">★</span>`).join('')}</div>`;
 
@@ -319,13 +349,18 @@ function showResult() {
   const main = v.reasons.find((r) => r.severity === 'fail') ?? v.reasons[0];
   const reaction = v.outcome === 'perfect' ? 'מושלם!!! 🤩' : v.outcome === 'ok' ? 'טעים! אבל…' : REACTION[main.code] ?? 'אממ… לא בדיוק.';
   const deal = G.activeTicket(g).def.order.dough.kind === 'bestDeal' ? dealScale(res.pie.count, res.pie.r) : '';
-  showOverlay(`<div style="font-weight:700;opacity:.75">${who}</div>
+  const facts: string[] = [];
+  if (v.want.sauce) facts.push(`🍅 רוטב <bdi>${round1(res.pie.sauce)}</bdi> מתוך <bdi>≈ ${round1(v.want.sauce.want)}</bdi> סמ״ר`);
+  if (v.want.crust) facts.push(`🧀 קרום <bdi>${res.pie.cheese ?? 0}</bdi> מתוך <bdi>≈ ${round1(v.want.crust.want)}</bdi> ס״מ`);
+  showOverlay(`<div class="scroll ${v.outcome}">
+    <div class="who">♥ ${who} ♥</div>
     <div class="reaction">${reaction}</div>
     ${stars(v.stars)}
     ${deal}
-    ${v.reasons.length ? `<div class="explain"><ul>${v.reasons.map((r) => `<li>${explain(r)}</li>`).join('')}</ul></div>` : `<p>בדיוק לפי ההזמנה. ${v.want.sauce ? `רוטב <bdi>${round1(res.pie.sauce)}</bdi> מתוך <bdi>≈${round1(v.want.sauce.want)}</bdi> סמ״ר.` : ''}</p>`}
-    ${v.outcome !== 'fail' ? `<div class="tips">טיפ: <bdi>+${res.tips}</bdi> 🪙 · <bdi>${res.seconds}</bdi> שניות</div>` : '<p>אין נורא — מכינים שוב! ההזמנה עדיין פתוחה.</p>'}
-    <button class="big" data-act="continue">${v.outcome === 'fail' ? 'ננסה שוב' : 'המשך'}</button>`);
+    ${v.outcome === 'perfect' ? facts.map((f) => `<div class="fact">${f} <span class="ok">✓</span></div>`).join('') : ''}
+    ${v.reasons.length ? `<div class="explain"><ul>${v.reasons.map((r) => `<li>${explain(r)}</li>`).join('')}</ul></div>` : ''}
+    ${v.outcome !== 'fail' ? `<div class="tips">🪙🪙 טיפ: <bdi>+${res.tips}</bdi> <small>· <bdi>${res.seconds}</bdi> שניות</small></div>` : '<p>אין נורא — מכינים שוב! ההזמנה עדיין פתוחה.</p>'}
+    <button class="big" data-act="continue">${v.outcome === 'fail' ? 'ננסה שוב ↻' : 'המשך ◀'}</button></div>`, 'result');
   if (v.outcome !== 'fail') sound.coin(Math.ceil(res.tips / 3));
 }
 
@@ -645,4 +680,4 @@ w.advanceTime = (ms: number) => {
   const steps = Math.max(1, Math.round(ms / (1000 / 60)));
   for (let i = 0; i < steps; i++) { G.update(g, ms / steps); step(ms / steps / 1000); }
 };
-w.pizza = { get state() { return g; }, G, act, scene };
+w.pizza = { get state() { return g; }, G, act, scene, goLevel: (i: number) => { titleShown = false; g = G.createGame(i, save.stars); shownPhase = ''; renderHud(true); } };

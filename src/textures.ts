@@ -82,6 +82,7 @@ export function rulerTexture(lengthCm: number, pxPerCm: number, color = '#f6d34a
   const w = Math.ceil(lengthCm * pxPerCm), h = 96;
   const [c, x] = canvas(w, h);
   x.fillStyle = color; x.fillRect(0, 0, w, h);
+  x.direction = 'ltr';
   x.fillStyle = '#2a1d10';
   x.font = 'bold 34px Rubik, system-ui, sans-serif';
   x.textAlign = 'center';
@@ -118,6 +119,7 @@ export function labelTexture(text: string, bg = 'rgba(30,18,10,0.85)', fg = '#ff
   const [c, x] = canvas(256, 96);
   x.fillStyle = bg;
   x.beginPath(); x.roundRect(4, 4, 248, 88, 30); x.fill();
+  x.direction = /[\u0590-\u05ff]/.test(text) ? 'rtl' : 'ltr';
   x.fillStyle = fg; x.font = 'bold 50px Rubik, system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillText(text, 128, 52);
   const t = new THREE.CanvasTexture(c);

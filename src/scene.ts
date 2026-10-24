@@ -9,7 +9,9 @@ import { crustRange, sauceRange } from './rules';
 import { brickTexture, chalkboardTexture, checkTexture, doughTexture, labelTexture, rulerTexture, sauceTexture, woodTexture } from './textures';
 import type { CustomerId } from './levels';
 
-export const U = 0.1; // world units per cm
+export const U = 0.16; // world units per cm (the pie is drawn bigger than the room, as in the mockups)
+const K = U / 0.1;
+const ROPE_MAX = 120;
 /** One cozy diorama (see design/mockups): the pie stays centre stage and the tools come to it. */
 const HOME = new THREE.Vector3(0, 0, 0.2);
 const FLOOR_Y = -4.5;
@@ -17,11 +19,11 @@ const WALL_Z = -8.5;
 const PEEL_Y = 0.12;
 const PIE_Y = PEEL_Y + 0.07;
 const ROPE_Z = 3.35;
-const REEL_X = 6.4;
+const REEL_X = 9.2;
 const PICKUP = new THREE.Vector3(0.2, 0, -3.0);
-const OVEN_POS = new THREE.Vector3(-8.6, -1.4, -5.2);
-const OVEN_MOUTH = new THREE.Vector3(-6.7, 0.9, -3.7);
-const MIX_POS = new THREE.Vector3(3.9, 0, 0.9);
+const OVEN_POS = new THREE.Vector3(-7.9, -1.3, -6.0);
+const OVEN_MOUTH = new THREE.Vector3(-6.2, 0.85, -4.6);
+const MIX_POS = new THREE.Vector3(5.4, 0, 0.8);
 const BASE = import.meta.env.BASE_URL;
 
 const ease = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
@@ -89,10 +91,10 @@ class Particles {
 
 // ---------------- one pie ----------------
 const TOPPING_GEO: Record<ToppingKind, THREE.BufferGeometry> = {
-  basil: new THREE.SphereGeometry(1, 10, 6).scale(0.11, 0.025, 0.07),
-  pepperoni: new THREE.CylinderGeometry(0.13, 0.13, 0.04, 18),
-  olive: new THREE.TorusGeometry(0.06, 0.03, 8, 14).rotateX(Math.PI / 2),
-  mushroom: new THREE.SphereGeometry(0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.6, 1),
+  basil: new THREE.SphereGeometry(1, 10, 6).scale(0.11 * K, 0.025 * K, 0.07 * K),
+  pepperoni: new THREE.CylinderGeometry(0.13 * K, 0.13 * K, 0.04 * K, 18),
+  olive: new THREE.TorusGeometry(0.06 * K, 0.03 * K, 8, 14).rotateX(Math.PI / 2),
+  mushroom: new THREE.SphereGeometry(0.1 * K, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.6, 1),
 };
 const TOPPING_MAT: Record<ToppingKind, THREE.Material> = {
   basil: new THREE.MeshStandardMaterial({ color: '#3f8f3a', roughness: 0.5 }),
@@ -130,7 +132,7 @@ class PieView {
     this.sauceMat = new THREE.MeshStandardMaterial({ map: sauceTex, roughness: 0.35, color: '#ffffff', polygonOffset: true, polygonOffsetFactor: -2 });
     this.dough = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.12, 128), this.doughMat);
     this.dough.castShadow = this.dough.receiveShadow = true;
-    this.ball = new THREE.Mesh(new THREE.SphereGeometry(0.65, 32, 20), this.doughMat);
+    this.ball = new THREE.Mesh(new THREE.SphereGeometry(0.65 * K, 32, 20), this.doughMat);
     this.ball.scale.y = 0.62; this.ball.castShadow = true;
     this.edge = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 10, 128), this.doughMat);
     this.edge.rotation.x = Math.PI / 2; this.edge.castShadow = true;
@@ -150,7 +152,7 @@ class PieView {
     const r = this.shownR;
     const isBall = pie.r <= 0;
     this.ball.visible = isBall;
-    this.ball.position.y = PIE_Y + 0.25;
+    this.ball.position.y = PIE_Y + 0.25 * K;
     this.dough.visible = this.edge.visible = !isBall && r > 0.05;
     const w = 1 + Math.sin(this.wobble * 30) * 0.12 * this.wobble;
     this.wobble = Math.max(0, this.wobble - dt * 1.6);
@@ -298,13 +300,13 @@ function crustGeometry(Lcm: number, rcm: number) {
     const t = (i / steps) * theta;
     const lap = t / (Math.PI * 2);
     const extra = Math.max(0, lap - 1);
-    const lift = Math.min(1, extra * 12) * 0.12;
+    const lift = Math.min(1, extra * 12) * 1.9 * U;
     const a = Math.PI / 2 - t;
-    const rr = R - Math.min(1, extra * 12) * 0.03;
-    pts.push(new THREE.Vector3(Math.cos(a) * rr, 0.04 + lift, Math.sin(a) * rr));
+    const rr = R - Math.min(1, extra * 12) * 0.4 * U;
+    pts.push(new THREE.Vector3(Math.cos(a) * rr, 0.6 * U + lift, Math.sin(a) * rr));
   }
   const curve = new THREE.CatmullRomCurve3(pts);
-  return new THREE.TubeGeometry(curve, steps, 0.1, 10, false);
+  return new THREE.TubeGeometry(curve, steps, 1.0 * U, 10, false);
 }
 
 // ---------------- characters ----------------
@@ -355,6 +357,7 @@ export class PizzaScene {
   private raycaster = new THREE.Raycaster();
   private counterPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -PIE_Y);
   reducedMotion = false;
+  camOverride: { look: number[]; width: number; pitch: number; yaw: number } | null = null;
   lost = false;
   fps = 0;
   private fpsAcc = 0; private fpsN = 0;
@@ -369,7 +372,7 @@ export class PizzaScene {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(this.renderer.domElement);
     this.renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; window.dispatchEvent(new CustomEvent('pizza-context-lost')); });
-    this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
+    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
     this.scene.background = new THREE.Color('#1a0f0b');
     this.scene.fog = new THREE.Fog('#1a0f0b', 26, 60);
 
@@ -386,9 +389,9 @@ export class PizzaScene {
 
     // Dough ruler: 0 at the pie centre, pointing right.
     const rt = rulerTexture(26, 40, '#f8e9a8', 5);
-    this.doughRuler = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.3), new THREE.MeshStandardMaterial({ map: rt, transparent: true, opacity: 0.92, roughness: 0.4 }));
+    this.doughRuler = new THREE.Mesh(new THREE.PlaneGeometry(26 * U, 3 * U), new THREE.MeshStandardMaterial({ map: rt, transparent: true, opacity: 0.92, roughness: 0.4 }));
     this.doughRuler.rotation.x = -Math.PI / 2;
-    this.doughRuler.geometry.translate(1.3, 0, 0);
+    this.doughRuler.geometry.translate(13 * U, 0, 0);
     this.scene.add(this.doughRuler);
     this.rulerPin = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture('r = 0'), depthTest: false }));
     this.rulerPin.scale.set(1.3, 0.49, 1);
@@ -430,14 +433,14 @@ export class PizzaScene {
     s.add(key);
     // One green pendant lamp over the pie, as in the mockup.
     const lamp = new THREE.PointLight('#ffc27a', 34, 16, 1.6);
-    lamp.position.set(0.5, 6.2, -0.5);
+    lamp.position.set(1.5, 8.6, -1.0);
     s.add(lamp);
     const shade = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.9, 32, 1, true), new THREE.MeshStandardMaterial({ color: '#2f5b3a', side: THREE.DoubleSide, roughness: 0.5, metalness: 0.2 }));
-    shade.position.set(0.5, 7.4, -0.5);
+    shade.position.set(1.5, 9.8, -1.0);
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 10), new THREE.MeshBasicMaterial({ color: '#fff1c4' }));
-    bulb.position.set(0.5, 6.95, -0.5);
+    bulb.position.set(1.5, 9.35, -1.0);
     const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 8), new THREE.MeshBasicMaterial({ color: '#111' }));
-    cord.position.set(0.5, 11.8, -0.5);
+    cord.position.set(1.5, 14.2, -1.0);
     s.add(shade, bulb, cord);
 
     // Butcher-block counter on a terracotta body with a tiled front.
@@ -462,7 +465,7 @@ export class PizzaScene {
 
     // Brick back wall with a pass window where the customer waits.
     const bricks = () => { const t = brickTexture(); return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95 }); };
-    const win = { x0: -3.2, x1: 3.6, y0: 1.6, y1: 6.4 };
+    const win = { x0: -2.6, x1: 4.6, y0: 1.0, y1: 5.4 };
     const addWall = (x0: number, x1: number, y0: number, y1: number) => {
       const w = x1 - x0, h = y1 - y0;
       const m = bricks(); m.map!.repeat.set(w / 9, h / 4.5);
@@ -531,15 +534,15 @@ export class PizzaScene {
       g.traverse((o) => (o.castShadow = true));
       s.add(g);
     };
-    pot(-10.5, -2.6, 1.3); pot(-2.8, -3.2); pot(9.5, -2.8, 1.2);
+    pot(-11.5, -2.6, 1.3); pot(-4.6, -3.4); pot(10.5, -2.8, 1.2);
     const flourBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.6, 0.5, 24), new THREE.MeshStandardMaterial({ color: '#8a5a3a', roughness: 0.6 }));
-    flourBowl.position.set(-4.8, 0.25, 1.9);
+    flourBowl.position.set(-6.4, 0.25, 1.6);
     const flour = new THREE.Mesh(new THREE.SphereGeometry(0.8, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#fbf6ea', roughness: 1 }));
-    flour.scale.y = 0.4; flour.position.set(-4.8, 0.45, 1.9);
+    flour.scale.y = 0.4; flour.position.set(-6.4, 0.45, 1.6);
     const oil = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 1.4, 12), new THREE.MeshStandardMaterial({ color: '#c9a227', roughness: 0.15, transparent: true, opacity: 0.8 }));
-    oil.position.set(-3.4, 0.7, -2.4);
+    oil.position.set(-5.4, 0.7, -1.2);
     const cloth = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.2), new THREE.MeshStandardMaterial({ map: checkTexture(), roughness: 0.9 }));
-    cloth.rotation.x = -Math.PI / 2; cloth.rotation.z = 0.3; cloth.position.set(-6.2, 0.01, 2.5);
+    cloth.rotation.x = -Math.PI / 2; cloth.rotation.z = 0.3; cloth.position.set(-7.6, 0.01, 2.4);
     for (const m of [flourBowl, flour, oil]) m.castShadow = true;
     cloth.receiveShadow = true;
     s.add(flourBowl, flour, oil, cloth);
@@ -559,9 +562,9 @@ export class PizzaScene {
 
   private buildCrustStation() {
     const cx = REEL_X;
-    const tape = new THREE.Mesh(new THREE.PlaneGeometry(14, 0.42), new THREE.MeshStandardMaterial({ map: rulerTexture(140, 24, '#f6d34a', 10, true), roughness: 0.5 }));
+    const tape = new THREE.Mesh(new THREE.PlaneGeometry(ROPE_MAX * U, 0.55), new THREE.MeshStandardMaterial({ map: rulerTexture(ROPE_MAX, 24, '#f6d34a', 10, true), roughness: 0.5 }));
     tape.rotation.x = -Math.PI / 2;
-    tape.position.set(cx - 7, 0.012, ROPE_Z + 0.02);
+    tape.position.set(cx - (ROPE_MAX * U) / 2, 0.012, ROPE_Z + 0.02);
     tape.receiveShadow = true;
     this.tape = tape;
     this.scene.add(tape);
@@ -573,7 +576,7 @@ export class PizzaScene {
     this.reel.position.set(cx + 0.7, 0.75, ROPE_Z);
     this.reel.traverse((o) => (o.castShadow = true));
     this.scene.add(this.reel);
-    this.rope = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 12).rotateZ(Math.PI / 2).translate(-0.5, 0, 0), new THREE.MeshStandardMaterial({ color: '#f5cf5a', roughness: 0.45, emissive: '#2a1800' }));
+    this.rope = new THREE.Mesh(new THREE.CylinderGeometry(U, U, 1, 12).rotateZ(Math.PI / 2).translate(-0.5, 0, 0), new THREE.MeshStandardMaterial({ color: '#f5cf5a', roughness: 0.45, emissive: '#2a1800' }));
     this.rope.position.set(cx, 0.12, ROPE_Z);
     this.rope.castShadow = true;
     this.ropeEnd = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10), new THREE.MeshStandardMaterial({ color: '#ffe08a', roughness: 0.4 }));
@@ -622,7 +625,7 @@ export class PizzaScene {
         m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
         jar.add(m);
       }
-      jar.position.set(3.4 + i * 1.25, 0, -2.3 + (i % 2) * 0.5);
+      jar.position.set(5.0 + i * 1.3, 0, -2.6 + (i % 2) * 0.5);
       jar.userData = { topping: k };
       jar.traverse((o) => { o.userData.topping = k; o.castShadow = true; });
       this.jars.push(jar);
@@ -639,7 +642,7 @@ export class PizzaScene {
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), gold);
     knob.position.y = 0.6;
     this.bell.add(base, dome, knob);
-    this.bell.position.set(-3.4, 0, 2.7);
+    this.bell.position.set(-5.4, 0, 3.0);
     this.bell.traverse((o) => (o.castShadow = true));
     this.bell.userData.bell = true;
     this.bell.traverse((o) => (o.userData.bell = true));
@@ -680,7 +683,8 @@ export class PizzaScene {
       const c = b2.getCenter(new THREE.Vector3());
       o.position.x -= c.x; o.position.z -= c.z; o.position.y -= b2.min.y;
       const wrap = new THREE.Group(); wrap.add(o);
-      o.traverse((m) => { if ((m as THREE.Mesh).isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+      // Skinned meshes keep their bind-pose bounds, which three.js culls wrongly once scaled and animated.
+      o.traverse((m) => { if ((m as THREE.Mesh).isMesh) { m.castShadow = true; m.receiveShadow = true; if ((m as THREE.SkinnedMesh).isSkinnedMesh) m.frustumCulled = false; } });
       return wrap;
     };
     onProgress('מחממים את התנור…');
@@ -688,7 +692,7 @@ export class PizzaScene {
     const info = (name: string, g: { scene: THREE.Object3D; animations: THREE.AnimationClip[] } | null) => this.modelInfo.push({ name, ok: !!g, triangles: g ? tris(g.scene) : 0, animations: g ? g.animations.map((a) => a.name) : [] });
     info('oven', oven); info('sauce-bottle', bottle); info('chef', chef); info('noa', noa); info('saba', saba);
 
-    if (oven) { const o = fit(oven.scene, 7.4); this.oven.add(o); this.oven.rotation.y = 0.7; }
+    if (oven) { const o = fit(oven.scene, 6.8); this.oven.add(o); this.oven.rotation.y = 0.62; }
     else { const dome = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#b8583a' })); dome.position.y = 4.6; this.oven.add(dome); }
     this.oven.position.copy(OVEN_POS);
     const plinth = new THREE.Mesh(new THREE.BoxGeometry(8.5, OVEN_POS.y - FLOOR_Y, 7), new THREE.MeshStandardMaterial({ color: '#7a6a5a', roughness: 0.95 }));
@@ -701,6 +705,15 @@ export class PizzaScene {
     else this.bottle.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 2, 16), new THREE.MeshStandardMaterial({ color: '#c8311f' })));
     this.scene.add(this.bottle);
 
+    // All three characters share Tripo's Mixamo skeleton, so a clip missing on one (the chef has no cheer)
+    // can be borrowed by bone name; the hips translation is dropped because body proportions differ.
+    const shared = new Map<string, THREE.AnimationClip>();
+    for (const m of [noa, saba]) for (const c of m?.animations ?? []) if (!shared.has(c.name)) shared.set(c.name, c);
+    const borrow = (clips: THREE.AnimationClip[]) => {
+      const have = new Set(clips.map((c) => c.name));
+      const extra = [...shared.values()].filter((c) => !have.has(c.name)).map((c) => new THREE.AnimationClip(c.name, c.duration, c.tracks.filter((t) => !/Hips\.position$/.test(t.name))));
+      return [...clips, ...extra];
+    };
     const actor = (g: { scene: THREE.Object3D; animations: THREE.AnimationClip[] } | null, height: number, color: string, pos: THREE.Vector3, clone = false): Actor => {
       let root: THREE.Object3D;
       let mixer: THREE.AnimationMixer | undefined;
@@ -708,9 +721,10 @@ export class PizzaScene {
       if (g) {
         const src = clone ? SkeletonUtils.clone(g.scene) : g.scene;
         root = fit(src, height);
-        if (g.animations.length) {
+        const clips = borrow(g.animations);
+        if (clips.length) {
           mixer = new THREE.AnimationMixer(src);
-          for (const clip of g.animations) actions[clip.name.toLowerCase()] = mixer.clipAction(clip);
+          for (const clip of clips) actions[clip.name.toLowerCase()] = mixer.clipAction(clip);
         }
       } else {
         root = new THREE.Group();
@@ -729,10 +743,10 @@ export class PizzaScene {
     this.chef = actor(chef, 12.5, '#ffffff', new THREE.Vector3(7.6, FLOOR_Y, -4.4));
     this.chef.root.rotation.y = -0.55;
     const noaPos = new THREE.Vector3(18, FLOOR_Y, WALL_Z - 1.6);
-    this.customers.noa = [actor(noa, 10.5, '#9b6fd1', noaPos.clone())];
-    this.customers.saba = [actor(saba, 11.8, '#3f8f3a', noaPos.clone())];
+    this.customers.noa = [actor(noa, 9.4, '#9b6fd1', noaPos.clone().setY(-4.5))];
+    this.customers.saba = [actor(saba, 10.4, '#3f8f3a', noaPos.clone().setY(-5.3))];
     this.customers.kids = [0, 1, 2].map((i) => {
-      const a = actor(noa, 8.6 + i * 0.5, '#9b6fd1', noaPos.clone(), true);
+      const a = actor(noa, 7.4 + i * 0.4, '#9b6fd1', noaPos.clone().setY(-3.5 - i * 0.4), true);
       a.root.traverse((m) => { const mm = (m as THREE.Mesh).material as THREE.MeshStandardMaterial; if ((m as THREE.Mesh).isMesh && mm?.color) { (m as THREE.Mesh).material = mm.clone(); ((m as THREE.Mesh).material as THREE.MeshStandardMaterial).color.offsetHSL([0, 0.35, -0.25][i], 0, 0); } });
       return a;
     });
@@ -784,12 +798,13 @@ export class PizzaScene {
       case 'cut': this.knifeDrop = 1; this.shakeCam(0.18); this.particles.emit({ pos: this.ropeEnd.position.clone(), n: 16, color: ['#ffe08a', '#f5cf5a'], speed: 2, up: 2.5, size: 0.06, life: 0.7 }); break;
       case 'topping': break;
       case 'bake_start': this.particles.emit({ pos: OVEN_MOUTH.clone(), n: 40, color: ['#ffb347', '#ff7a1a', '#ffd27a'], speed: 1.5, up: 4, size: 0.06, life: 1.4, g: -1, drag: 1.5 }); break;
-      case 'bake_done': this.particles.emit({ pos: pieWorld, n: 26, color: ['#f2ede4', '#d8d2c8'], speed: 0.6, up: 2.2, size: 0.18, life: 1.6, g: -0.6, drag: 1.2, grow: 2 }); break;
+      case 'bake_done': this.particles.emit({ pos: pieWorld, n: 40, color: ['#fffaf2', '#efe8dc'], speed: 0.5, up: 1.6, size: 0.05, life: 1.8, g: -0.5, drag: 1.4, grow: 1.2, spread: R * 1.6 }); break;
       case 'serve': {
         this.bellBounce = 1;
         const cust = this.activeCustomers(g);
         const ok = c.values?.outcome !== 'fail';
         cust.forEach((a) => { a.react = 2.2; a.mood = ok ? 'happy' : 'sad'; this.play(a, a.mood); });
+        if (this.chef && c.values?.outcome === 'perfect') { this.chef.react = 2.4; this.chef.mood = 'happy'; this.play(this.chef, 'happy'); }
         if (c.values?.outcome === 'perfect') setTimeout(() => this.particles.emit({ pos: new THREE.Vector3(PICKUP.x, 5, WALL_Z + 1), n: 120, color: ['#ffcf3a', '#3f8f3a', '#e0482a', '#ffffff', '#7ac0ff'], speed: 5, up: 7, size: 0.09, life: 2.2, g: 7, drag: 0.6 }), 300);
         if (!ok) this.shakeCam(0.35);
         break;
@@ -834,7 +849,7 @@ export class PizzaScene {
     const two = pie.count === 2;
     const board = this.peel.userData.board as THREE.Mesh;
     const R = pie.r * U;
-    const br = Math.max(1.3, this.pies[0].shownR + 0.35);
+    const br = Math.max(1.3 * K, this.pies[0].shownR + 0.45);
     board.scale.set(two ? br * 2.05 : br, 1, br);
     const handle = this.peel.userData.handle as THREE.Mesh;
     handle.position.set(-0.6 * (br + 1.5), PEEL_Y - 0.03, 0.8 * (br + 1.5));
@@ -871,9 +886,9 @@ export class PizzaScene {
     this.bottle.visible = true;
     // Tilted nozzle-down over the pie centre while saucing (mockup 02), standing on the counter otherwise.
     const tilt = 2.35;
-    const bx = onSauce ? this.peel.position.x + Math.sin(tilt) * 2.2 : 2.4;
+    const bx = onSauce ? this.peel.position.x + Math.sin(tilt) * 2.2 : -3.9;
     const by = onSauce ? 1.25 - Math.cos(tilt) * 2.2 + 0.4 - sq * 0.35 : 0;
-    this.bottle.position.set(damp(this.bottle.position.x, bx, 6, dt), damp(this.bottle.position.y, by, 6, dt), damp(this.bottle.position.z, onSauce ? this.peel.position.z : -1.6, 6, dt));
+    this.bottle.position.set(damp(this.bottle.position.x, bx, 6, dt), damp(this.bottle.position.y, by, 6, dt), damp(this.bottle.position.z, onSauce ? this.peel.position.z : -2.3, 6, dt));
     this.bottle.rotation.z = damp(this.bottle.rotation.z, onSauce ? tilt : 0, 6, dt);
     this.bottle.scale.set(1 + sq * 0.22, 1 - sq * 0.18, 1 + sq * 0.22);
 
@@ -938,9 +953,10 @@ export class PizzaScene {
       list.forEach((a, i) => {
         const isActive = tk?.def.customer === id && g.phase !== 'levelDone' && g.phase !== 'finished' && g.phase !== 'intro';
         const waiting = openCustomers.has(id as CustomerId) && !isActive && g.phase === 'playing';
-        if (isActive) a.target.set(0.2 + (list.length > 1 ? (i - 1) * 2.1 : 0), FLOOR_Y, WALL_Z - 1.5);
-        else if (waiting) a.target.set(5.5 + i * 1.6 + Object.keys(this.customers).indexOf(id) * 1.8, FLOOR_Y, WALL_Z - 3.5);
-        else a.target.set(16 + i * 2, FLOOR_Y, WALL_Z - 2.5);
+        // The active customer leans in at the pass window; others queue along the wall.
+        if (isActive) a.target.set(1.4 + (list.length > 1 ? (i - 1) * 1.9 : 0), a.baseY, WALL_Z + 1.3);
+        else if (waiting) a.target.set(6.5 + i * 1.5 + Object.keys(this.customers).indexOf(id) * 1.9, a.baseY - 0.6, WALL_Z + 0.9);
+        else a.target.set(18 + i * 2, a.baseY, WALL_Z + 1);
         this.animateActor(a, dt);
       });
     }
@@ -960,15 +976,16 @@ export class PizzaScene {
 
     // ---- camera ----
     const look = new THREE.Vector3();
-    let width = 18, pitch = 0.64, yaw = 0.16;
+    let width = 19, pitch = 0.62, yaw = 0.16;
     if (g.phase === 'intro' || g.phase === 'levelDone' || g.phase === 'finished' || g.phase === 'shiftOver') { look.set(-0.5, 2.2, -2.5); width = 22; pitch = 0.5; }
-    else if (g.phase === 'result') { look.set(PICKUP.x, 3.0, -4.5); width = 13; pitch = 0.36; yaw = 0.15; }
-    else if (g.busy?.kind === 'bake' || st === 'oven') { look.set(-4.2, 1.6, -2.4); width = 17; pitch = 0.5; yaw = 0.36; }
-    else if (st === 'crust') { look.set(-0.6, 0.4, 0.2); width = 19; pitch = 0.88; yaw = 0.12; }
+    else if (g.phase === 'result') { look.set(PICKUP.x, 3.2, -5.5); width = 13; pitch = 0.3; yaw = 0; }
+    else if (g.busy?.kind === 'bake' || st === 'oven') { look.set(-3.4, 1.0, -1.8); width = 18; pitch = 0.58; yaw = 0.3; }
+    else if (st === 'crust') { look.set(0, 0.3, 0.6); width = 22; pitch = 0.92; yaw = 0.08; }
     else if (st === 'mix') { look.set(MIX_POS.x - 1.4, 1.0, -0.8); width = 15; pitch = 0.7; }
-    else { look.set(-0.9, 1.6, -2.4); width = Math.max(18, (pie.r * U) * 2 * (two ? 2.2 : 1) + 13); }
+    else { look.set(-0.4, 1.2, -1.8); width = Math.max(19, (pie.r * U) * 2 * (two ? 2.2 : 1) + 13); pitch = 0.68; }
+    if (this.camOverride) { look.fromArray(this.camOverride.look); width = this.camOverride.width; pitch = this.camOverride.pitch; yaw = this.camOverride.yaw; }
     const portrait = this.camera.aspect < 0.9;
-    if (portrait) { width *= 0.62; pitch = Math.min(1.15, pitch + 0.2); look.z += 0.8; yaw *= 0.4; }
+    if (portrait) { width *= 0.6; pitch = Math.min(1.12, pitch + 0.22); look.z += g.phase === 'playing' ? 2.4 : 0.8; look.y -= 0.4; yaw *= 0.3; }
     const pos = new THREE.Vector3();
     this.frame(look, width, pitch, yaw, pos);
     if (!Number.isFinite(this.camPos.x + this.camPos.y + this.camPos.z)) this.camPos.copy(pos);

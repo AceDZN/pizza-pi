@@ -47,7 +47,7 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .round[disabled] { opacity: .4; }
 
 /* ---------- order tickets (top centre) ---------- */
-.tickets { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; flex-direction: row; }
+.tickets { position: absolute; top: 10px; left: 41%; transform: translateX(-50%); display: flex; gap: 10px; flex-direction: row; }
 .ticket { position: relative; width: 210px; background: var(--paper); padding: 18px 14px 12px; border-radius: 4px 4px 10px 10px; box-shadow: var(--soft); transform: rotate(-1.5deg); border-bottom: 3px dashed #d9c49b; text-align: center; transition: transform .2s, opacity .2s; }
 .ticket:nth-child(2n) { transform: rotate(1.5deg); }
 .ticket::before { content: ''; position: absolute; top: -6px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a7a, var(--red)); box-shadow: 0 3px 4px rgba(0,0,0,.4); }
@@ -87,6 +87,7 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .control h3 { margin: 0 0 6px; font-size: 22px; font-weight: 900; }
 .control .readout { display: flex; align-items: center; justify-content: center; gap: 6px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; font-size: 32px; font-weight: 900; padding: 4px 10px; margin: 6px 0; }
 .control .readout small { font-size: 18px; }
+.control .row.steps { direction: ltr; }
 .control .row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
 .chip { min-width: 46px; padding: 8px 10px; border-radius: 12px; background: var(--cream); border: 2.5px solid var(--brown); font-weight: 900; font-size: 16px; box-shadow: 0 3px 0 rgba(58,34,20,.35); }
 .chip:active { transform: translateY(2px); box-shadow: none; }
@@ -124,6 +125,17 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .sheet .explain li { margin: 4px 0; }
 .sheet .reaction { font-size: 30px; font-weight: 900; margin: 6px 0; }
 .sheet .tips { font-weight: 900; font-size: 20px; }
+.sheet.result { background: none; border: 0; box-shadow: none; padding: 0; width: min(480px, 100%); }
+.scroll { position: relative; background: radial-gradient(ellipse at 50% 40%, #fff8e6, #f3e2bd 75%, #e6cf9d); border: 4px solid var(--brown); border-radius: 26px 26px 34px 34px; padding: 22px 26px 24px; box-shadow: var(--shadow); }
+.scroll::before, .scroll::after { content: ''; position: absolute; left: -14px; right: -14px; height: 22px; background: linear-gradient(#e9d2a2, #c9a56a); border: 3px solid var(--brown); border-radius: 12px; }
+.scroll::before { top: -12px; } .scroll::after { bottom: -12px; }
+.scroll .who { display: inline-block; font-weight: 900; font-size: 20px; color: var(--brown); }
+.scroll .reaction { font-size: 46px; color: #7a1f12; text-shadow: 0 3px 0 #f2c45a; line-height: 1.1; }
+.scroll.fail .reaction { font-size: 34px; color: var(--ink); text-shadow: none; }
+.scroll .stars { font-size: 58px; }
+.scroll .fact { display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border: 2.5px solid var(--brown); border-radius: 999px; padding: 6px 14px; font-weight: 900; font-size: 17px; margin: 6px auto; width: fit-content; }
+.scroll .fact .ok { background: var(--basil); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; font-size: 14px; }
+.scroll .tips { font-size: 26px; margin: 8px 0; }
 .levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 14px 0; text-align: start; }
 .levels button { background: var(--cream); border: 2.5px solid var(--brown); border-radius: 12px; padding: 8px 10px; font-weight: 700; font-size: 14px; }
 .levels button[disabled] { opacity: .4; }
@@ -131,7 +143,11 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
 .title .mark { font-weight: 900; font-size: 84px; color: #fff3d6; -webkit-text-stroke: 4px var(--brown); paint-order: stroke fill; text-shadow: 0 6px 0 #4a2814; line-height: 1; }
 .title .mark .pi { color: var(--gold); font-family: Georgia, serif; font-style: italic; }
 .toggles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
-.notebook { position: absolute; left: 14px; bottom: 350px; width: 300px; background: #fffdf5 repeating-linear-gradient(transparent 0 26px, #cfe0f2 26px 27px); border: 3px solid var(--brown); border-radius: 6px 16px 16px 6px; padding: 12px 16px; box-shadow: var(--shadow); font-weight: 700; font-size: 18px; line-height: 27px; border-right: 10px solid var(--red); }
+.gauge { position: relative; width: 220px; margin: 0 auto; }
+.gauge svg { width: 100%; display: block; }
+.gauge-val { position: absolute; left: 0; right: 0; bottom: -6px; display: flex; justify-content: center; align-items: baseline; gap: 4px; }
+.gauge-val .dial-input { width: 110px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; font-size: 26px; padding: 0 4px; }
+.notebook { position: absolute; left: 330px; bottom: 150px; width: 280px; transform: rotate(-3deg); background: #fffdf5 repeating-linear-gradient(transparent 0 26px, #cfe0f2 26px 27px); border: 3px solid var(--brown); border-radius: 6px 16px 16px 6px; padding: 12px 16px; box-shadow: var(--shadow); font-weight: 700; font-size: 18px; line-height: 27px; border-right: 10px solid var(--red); }
 .notebook.hidden, .calc.hidden { display: none; }
 .notebook .formula { font-size: 21px; font-weight: 900; }
 .calc { position: absolute; top: 80px; left: 14px; width: 236px; background: #3a3f44; border-radius: 18px; padding: 12px; box-shadow: var(--shadow); border: 3px solid #1d2124; }
@@ -183,7 +199,9 @@ bdi, .ltr { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular
   .stock .card .ico { width: 22px; height: 22px; }
   .stock .card b { font-size: 12px; }
   .speech { max-width: 200px; font-size: 14px; padding: 8px 12px; }
-  .notebook { left: 8px; right: 8px; width: auto; bottom: auto; top: 150px; font-size: 15px; }
+  .notebook { left: 8px; right: 8px; width: auto; bottom: auto; top: 150px; font-size: 15px; transform: none; }
+  .gauge { width: 150px; }
+  .gauge-val .dial-input { font-size: 20px; width: 90px; }
   .calc { top: 56px; }
   .sheet { padding: 16px; }
   .sheet h1 { font-size: 30px; }
