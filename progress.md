@@ -16,7 +16,7 @@
 
 ## Next ideas
 
-- Face rig: try arkit-blendshape-tool or a Blender ShapeKeyGen pass on one character (e.g. Noa) to get blink + smile/frown blendshapes, then drive them from the game mood.
+- Face rig: done for Noa (blink/smile/frown morphs from Blender, driven by mood and patience; see ASSETS.md). Next: run the same script for the chef, Saba and the kids (each needs eye/mouth positions from a front render; Saba's beard and the chef's mustache cover the mouth, so they may only get blink).
 
 - Real-phone test; reduce triangles/shadows on mobile if needed.
 - A chef-specific cheer and a customer "disappointed" clip from Tripo.

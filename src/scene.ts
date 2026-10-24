@@ -5,7 +5,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Cue, GameState, PieState, Station, ToppingKind } from './game';
 import { activeTicket } from './game';
-import { crustRange, sauceRange } from './rules';
+import { crustRange, PATIENCE_MS, sauceRange } from './rules';
 import { brickTexture, chalkboardTexture, checkTexture, doughTexture, labelTexture, rulerTexture, sauceTexture, woodTexture } from './textures';
 import type { CustomerId } from './levels';
 
@@ -324,7 +324,9 @@ function crustGeometry(Lcm: number, rcm: number) {
 }
 
 // ---------------- characters ----------------
-interface Actor { root: THREE.Object3D; mixer?: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction>; current?: string; react: number; mood: 'happy' | 'sad' | 'idle'; home: THREE.Vector3; target: THREE.Vector3; baseY: number; phase: number }
+/** Face morph targets baked in Blender (scripts/face/build_face.py): blink, smile, frown. */
+interface Face { meshes: THREE.Mesh[]; blink: number; smile: number; frown: number; nextBlink: number; blinkT: number; s: number; f: number }
+interface Actor { root: THREE.Object3D; mixer?: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction>; current?: string; react: number; mood: 'happy' | 'sad' | 'idle'; home: THREE.Vector3; target: THREE.Vector3; baseY: number; phase: number; face?: Face; worry: number }
 
 export interface ModelInfo { name: string; ok: boolean; triangles: number; animations: string[] }
 
@@ -765,7 +767,10 @@ export class PizzaScene {
       }
       root.position.copy(pos);
       this.scene.add(root);
-      const a: Actor = { root, mixer, actions, react: 0, mood: 'idle', home: pos.clone(), target: pos.clone(), baseY: pos.y, phase: Math.random() * 6 };
+      const a: Actor = { root, mixer, actions, react: 0, mood: 'idle', home: pos.clone(), target: pos.clone(), baseY: pos.y, phase: Math.random() * 6, worry: 0 };
+      const faceMeshes: THREE.Mesh[] = [];
+      root.traverse((m) => { const mm = m as THREE.Mesh; if (mm.isMesh && mm.morphTargetDictionary && 'blink' in mm.morphTargetDictionary) faceMeshes.push(mm); });
+      if (faceMeshes.length) { const d = faceMeshes[0].morphTargetDictionary!; a.face = { meshes: faceMeshes, blink: d.blink, smile: d.smile ?? -1, frown: d.frown ?? -1, nextBlink: 1 + Math.random() * 3, blinkT: -1, s: 0, f: 0 }; }
       this.play(a, 'idle');
       return a;
     };
@@ -998,6 +1003,9 @@ export class PizzaScene {
     for (const [id, list] of Object.entries(this.customers)) {
       list.forEach((a, i) => {
         const isActive = tk?.def.customer === id && g.phase !== 'levelDone' && g.phase !== 'finished';
+        // Waiting too long shows on the face: the frown grows as the ticket's patience runs out.
+        const ticket = g.tickets.find((t) => t.def.customer === id && !t.done);
+        a.worry = ticket && g.phase === 'playing' ? Math.max(0, Math.min(1, (ticket.age / PATIENCE_MS - 0.5) * 2)) : 0;
         const waiting = openCustomers.has(id as CustomerId) && !isActive && g.phase === 'playing';
         // The active customer leans in at the pass window; others queue along the wall.
         // Kids stand in a row by height: Maya (smallest) on the left, Ido middle, Yoni (tallest) right.
@@ -1074,6 +1082,27 @@ export class PizzaScene {
     if (a.react <= 0 && a.mood !== 'idle') { a.mood = 'idle'; this.play(a, 'idle'); }
     const sq = a.mood === 'happy' && a.react > 0 ? 1 - Math.abs(Math.sin(a.react * 8)) * 0.08 : 1;
     a.root.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+    if (a.face) this.animateFace(a, dt);
+  }
+
+  private animateFace(a: Actor, dt: number) {
+    const f = a.face!;
+    // Blink every 2–5 s (sometimes a double blink); a blink takes ~0.16 s.
+    f.nextBlink -= dt;
+    if (f.nextBlink <= 0 && f.blinkT < 0) { f.blinkT = 0; f.nextBlink = Math.random() < 0.15 ? 0.25 : 2 + Math.random() * 3; }
+    let blink = 0;
+    if (f.blinkT >= 0) { f.blinkT += dt; const t = f.blinkT / 0.16; blink = t < 0.45 ? t / 0.45 : Math.max(0, 1 - (t - 0.45) / 0.55); if (t >= 1) f.blinkT = -1; }
+    const happy = a.mood === 'happy' && a.react > 0, sad = a.mood === 'sad' && a.react > 0;
+    if (sad) blink = Math.max(blink, 0.35); // droopy lids when disappointed
+    const smileGoal = happy ? 1 : sad ? 0 : 0.15 * (1 - a.worry);
+    const frownGoal = sad ? 1 : happy ? 0 : a.worry * 0.85;
+    f.s = damp(f.s, smileGoal, 8, dt); f.f = damp(f.f, frownGoal, 8, dt);
+    for (const m of f.meshes) {
+      const inf = m.morphTargetInfluences!;
+      inf[f.blink] = blink;
+      if (f.smile >= 0) inf[f.smile] = f.s;
+      if (f.frown >= 0) inf[f.frown] = f.f;
+    }
   }
 
   // ---------- picking ----------

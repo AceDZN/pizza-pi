@@ -74,3 +74,20 @@ Cost by list price: 7 generations × 45 + 6 retopo × 35 + 6 rigs × 20 = 645 cr
 - Tripo's rigging produces body skeletons (Mixamo/humanoid presets); no face bones or ARKit blendshapes are offered in the Studio UI.
 - Third-party routes exist but are not one-click for these stylized meshes: the open-source [arkit-blendshape-tool](https://github.com/digitalp/arkit-blendshape-tool) copies ARKit shapes from a reference avatar by vertex proximity (needs similar face topology); Blender add-ons such as ShapeKeyGen or Faceflex need a hand-set face rig. Unreal MetaHuman would replace the characters rather than rig them.
 - Decision for now: calm painted faces, with emotion carried by body animation, speech bubbles and reactions. A real face rig is a follow-up (see progress.md).
+
+## Face rig on Noa (25 Oct)
+
+Noa now has three morph targets (blendshapes), baked in Blender 5.2 headless by `scripts/face/build_face.py` (`npm run face:noa`):
+
+- **blink:** vertices around each painted eye collapse toward a lid line just below the eye centre, so the skin above stretches over the painted eye and leaves a lash line.
+- **smile / frown:** a smooth parabola across the mouth lifts or drops the corners while the centre stays put.
+
+The painted features follow the vertices, so no texture work is needed. The glasses are a separate geometric part: the script welds UV seams, finds the part at the nose bridge and freezes it, so the frames never bend. Eye and mouth positions were read off an orthographic front render (`scripts/face/render_face.py`). The morphs survive gltf-transform/meshopt as `blink`, `smile`, `frown` (+12 KB). Proof strip: `design/screenshots/noa-face-morphs.png`.
+
+In the game (`animateFace` in `src/scene.ts`), any character whose mesh has these morph names:
+- blinks every 2–5 s, sometimes twice;
+- rests with a 15% smile;
+- frowns more as its ticket's patience runs out (from half-time on);
+- smiles fully when served well, frowns with droopy lids when disappointed.
+
+To add another character, read its eye and mouth positions from a front render and run the same script with those numbers.
