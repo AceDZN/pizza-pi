@@ -6,6 +6,7 @@ import { PizzaScene, U } from './scene';
 import { Sound } from './audio';
 import { evaluate } from './calc';
 import type { Station } from './game';
+import { initHost, postToHost } from './host';
 
 const SAVE_KEY = 'pizza-pi-v1';
 const EVENTS_KEY = 'pizza-pi-events-v1';
@@ -24,6 +25,10 @@ function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)
 function writeEvents() { try { localStorage.setItem(EVENTS_KEY, JSON.stringify(g.events.slice(-500))); } catch { /* ignore */ } }
 
 const params = new URLSearchParams(location.search);
+initHost('pizza-pi');
+// The level the workbook host was last told about, so each play posts one level-start.
+let hostLevel = -1;
+let levelStartedAt = 0;
 const startLevel = Math.max(0, Math.min(LEVELS.length - 1, Number(params.get('level') ?? 1) - 1 || 0));
 let g = G.createGame(startLevel, save.stars);
 let titleShown = !params.has('level');
@@ -83,7 +88,7 @@ sound.setMuted(save.muted);
 scene.reducedMotion = save.reduced || matchMedia('(prefers-reduced-motion: reduce)').matches;
 document.body.classList.toggle('reduced', scene.reducedMotion);
 let modelsReady = false;
-scene.loadModels((m) => { $('#loading').textContent = m; }).then(() => { modelsReady = true; $('#loading').remove(); });
+scene.loadModels((m) => { $('#loading').textContent = m; }).then(() => { modelsReady = true; $('#loading').remove(); postToHost({ type: 'ready' }); });
 window.addEventListener('pizza-context-lost', () => {
   const d = document.createElement('div');
   d.className = 'lost';
@@ -413,6 +418,8 @@ function showLevelDone() {
   save.unlocked = Math.max(save.unlocked, g.levelIndex + 1);
   writeSave();
   const last = g.phase === 'finished';
+  postToHost({ type: 'level-complete', level: g.levelIndex + 1, stars: g.starsByLevel[g.levelIndex] ?? 0, score: g.tipsTotal, durationMs: Math.round(performance.now() - levelStartedAt) });
+  hostLevel = -1;
   showOverlay(`<h2>${last ? 'סוף המשמרת! 🎉' : 'שלב הושלם!'}</h2>${stars(st)}
     <p>טיפים: <bdi>${g.tipsTotal}</bdi> ${COIN} · פתחתם את המחברת <bdi>${g.hintsUsed}</bdi> פעמים</p>
     ${last ? `<p>עברתם את שעת העומס בלי המחברת של השף! רדיוס, קוטר, שטח, היקף, אחוזים ויחס — השתמשתם בכולם על פיצות אמיתיות.</p>
@@ -437,6 +444,12 @@ function syncOverlay() {
   shownPhase = key;
   document.body.classList.toggle('hud-off', titleShown || g.phase === 'intro' || g.phase === 'levelDone' || g.phase === 'finished' || g.phase === 'shiftOver');
   if (titleShown) { showTitle(); return; }
+  if (g.phase === 'intro') hostLevel = -1;
+  if (g.phase === 'playing' && hostLevel !== g.levelIndex) {
+    hostLevel = g.levelIndex;
+    levelStartedAt = performance.now();
+    postToHost({ type: 'level-start', level: g.levelIndex + 1 });
+  }
   switch (g.phase) {
     case 'intro': showIntro(); break;
     case 'result': setTimeout(() => g.phase === 'result' && showResult(), scene.reducedMotion ? 0 : 900); break;
